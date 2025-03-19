@@ -9,7 +9,7 @@ const inscriptionRoutes = require("./routes/inscriptionRoutes");
 const pwdOublierRoutes = require("./routes/pwdOublierRoutes");
 const voitureRoutes = require("./routes/voitureRoutes");
 const roleRoutes = require("./routes/roleRoutes");
-
+const clientRoutes = require('./routes/clientRoutes');
 const app = express();
 connectDB();
 
@@ -21,6 +21,8 @@ app.use("/api/inscription", inscriptionRoutes);
 app.use("/api/pwdOublier", pwdOublierRoutes);
 app.use("/api/voiture", voitureRoutes);
 app.use("/api/role", roleRoutes);
+app.use('/clients', clientRoutes);
+
 
 setInterval(deleteOldInscriptions, 60 * 1000);
 
