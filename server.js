@@ -32,4 +32,4 @@ app.get("/api/message", (req, res) => {
   });
 
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log(`🚀 Serveur démarré sur le port ${PORT}`));
+app.listen(PORT, () => console.log(` Serveur démarré sur le port ${PORT}`));

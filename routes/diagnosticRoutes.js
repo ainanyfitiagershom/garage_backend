@@ -1,7 +1,9 @@
 const express = require("express");
 const Diagnostic = require("../models/Diagnostic");
-
 const router = express.Router();
+const { getDiagnosticsParMecanicien,getDiagnostiquesTermines } = require('../controllers/diagnosticController');
+const verifyToken = require('../middlewares/verifyToken');
+const verifyRole = require('../middlewares/verifyRole');
 
 // Ajouter un diagnostic
 router.post("/", async (req, res) => {
@@ -65,5 +67,15 @@ router.delete("/:id", async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
+
+
+
+
+// Route pour obtenir la liste des diagnostics d'un mécanicien
+// L'utilisateur doit être authentifié et avoir le rôle "Mecanicien"
+router.get('/diagnostics', verifyToken, verifyRole('Mecanicien'), getDiagnosticsParMecanicien);
+
+// Route pour obtenir les diagnostics terminés
+router.get("/diagnostics/termines",verifyToken, verifyRole('Manager'), getDiagnostiquesTermines);
 
 module.exports = router;

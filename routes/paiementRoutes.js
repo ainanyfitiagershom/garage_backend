@@ -1,91 +1,150 @@
 const express = require("express");
+const router = express.Router();
 const Paiement = require("../models/Paiement");
 const Facture = require("../models/Facture");
 
-const router = express.Router();
-
-router.post("/", async (req, res) => {
+router.put("/paiement/valider/:idPaiement", async (indexDetailPaiement, res) => {
     try {
-        const { facture } = req.body;
-
-        // Vérifier si la facture existe
-        const factureExistante = await Facture.findById(facture);
-        if (!factureExistante) {
-            return res.status(404).json({ message: "Facture introuvable" });
+       
+        // Trouver le paiement
+        const paiement = await Paiement.findById(req.params.idPaiement);
+        if (!paiement) {
+            return res.status(404).json({ message: "Paiement non trouvé." });
         }
 
-        // Vérifier si un paiement existe déjà
-        const paiementExistant = await Paiement.findOne({ facture });
-        if (paiementExistant) {
-            return res.status(400).json({ message: "Un paiement existe déjà pour cette facture" });
+        // Vérifier si le détail de paiement est valide
+        if (!paiement.details_paiement[indexDetailPaiement]) {
+            return res.status(400).json({ message: "Détail de paiement invalide." });
         }
 
-        // Créer un paiement vide au départ
-        const paiement = new Paiement({ facture, montant_total_paye: 0, details_paiement: [] });
+        const detailPaiement = paiement.details_paiement[indexDetailPaiement];
+
+        // Vérifier si l'état est déjà validé
+        if (detailPaiement.etat === "Validé") {
+            return res.status(400).json({ message: "Ce paiement a déjà été validé." });
+        }
+
+        // Mettre à jour l'état du détail de paiement à "Validé"
+        detailPaiement.etat = "Validé";
+
+        // Vérifier si tout le paiement a été validé
+        const montantPayeTotal = paiement.details_paiement.reduce((acc, detail) => acc + detail.montant_paye, 0);
+        if (montantPayeTotal >= paiement.montant_total_facture) {
+            paiement.statut = "Payé";  // Si le montant total est payé, mettre le statut à "Payé"
+        }
+
+        // Sauvegarder le paiement
         await paiement.save();
 
-        res.status(201).json({ message: "Paiement créé avec succès", paiement });
+        // Répondre avec le paiement mis à jour
+        return res.status(200).json({ message: "Paiement validé avec succès.", paiement });
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        console.error(error);
+        return res.status(500).json({ message: "Erreur lors de la validation du paiement.", error });
     }
 });
 
 
-router.post("/:id/details", async (req, res) => {
+
+router.put("/paiement/ajouter/:idPaiement", async (req, res) => {
     try {
         const { montant_paye, mode_paiement } = req.body;
-        const paiement = await Paiement.findById(req.params.id).populate("facture");
 
+        // Vérifier que le paiement est valide et existe
+        const paiement = await Paiement.findById(req.params.idPaiement);
         if (!paiement) {
-            return res.status(404).json({ message: "Paiement introuvable" });
+            return res.status(404).json({ message: "Paiement non trouvé." });
         }
 
-        // Vérifier que le montant payé ne dépasse pas le total de la facture
-        if (paiement.montant_total_paye + montant_paye > paiement.facture.montant_total) {
-            return res.status(400).json({ message: "Le montant dépasse le total de la facture" });
-        }
+        // Ajouter un nouveau paiement à la liste des paiements
+        const detailPaiement = {
+            montant_paye,
+            mode_paiement,
+            etat: "En attente" // L'état initial est "En attente" jusqu'à validation
+        };
 
-        // Ajouter le paiement partiel
-        const nouveauPaiement = { montant_paye, mode_paiement, date_paiement: new Date() };
-        paiement.details_paiement.push(nouveauPaiement);
+        paiement.details_paiement.push(detailPaiement);
+
+        // Mettre à jour le montant total payé
         paiement.montant_total_paye += montant_paye;
 
-        // Mettre à jour le statut
-        if (paiement.montant_total_paye >= paiement.facture.montant_total) {
-            paiement.statut = "Payé";
-            paiement.facture.mode_paiement = mode_paiement;
-            paiement.facture.date_paiement = new Date();
-            await paiement.facture.save();
+        // Vérifier si le paiement est complet (si le montant total payé est égal ou supérieur au montant de la facture)
+        if (paiement.montant_total_paye >= paiement.montant_total_facture) {
+            paiement.statut = "Payé"; // Si payé, on change le statut à "Payé"
         }
 
+        // Sauvegarder le paiement mis à jour
         await paiement.save();
 
-        res.status(201).json({ message: "Paiement ajouté avec succès", paiement });
+        return res.status(200).json({ message: "Paiement partiel ajouté avec succès.", paiement });
     } catch (error) {
-        res.status(400).json({ message: error.message });
+        console.error(error);
+        return res.status(500).json({ message: "Erreur lors de l'ajout du paiement.", error });
     }
 });
 
 
-router.get("/", async (req, res) => {
+router.put("/payer/:idFacture", async (req, res) => {
     try {
-        const paiements = await Paiement.find().populate("facture");
-        res.json(paiements);
+        const { montant_paye, mode_paiement } = req.body;
+
+        // Vérifier que le montant à payer est valide
+        if (!montant_paye || montant_paye <= 0) {
+            return res.status(400).json({ message: "Le montant à payer est invalide." });
+        }
+
+        // Récupérer la facture par son ID
+        const facture = await Facture.findById(req.params.idFacture);
+        if (!facture) {
+            return res.status(404).json({ message: "Facture non trouvée." });
+        }
+
+        // Vérifier si un paiement existe déjà pour cette facture
+        let paiement = await Paiement.findOne({ facture: facture._id });
+        if (!paiement) {
+            // Si aucun paiement n'existe, créer un nouveau paiement
+            paiement = new Paiement({
+                facture: facture._id,
+                montant_total_facture: facture.montant_total,  // Montant total de la facture
+                montant_total_paye: 0,  // Initialement 0
+                montant_restant: facture.montant_total,  // Initialement égal au montant total de la facture
+                statut: "En cours",
+                details_paiement: []
+            });
+        }
+
+        // Ajouter le paiement partiel dans la liste des détails de paiement
+        const detailPaiement = {
+            montant_paye,
+            mode_paiement,
+            etat: "En attente"  // Initialement, l'état du paiement est "En attente" jusqu'à validation
+        };
+
+        paiement.details_paiement.push(detailPaiement);
+
+        // Mettre à jour les montants
+        paiement.montant_total_paye += montant_paye;
+        paiement.montant_restant -= montant_paye;
+
+        // Si le paiement est complet, mettre à jour le statut
+        if (paiement.montant_total_paye >= paiement.montant_total_facture) {
+            paiement.statut = "Payé";
+            paiement.montant_restant = 0;  // Si payé en entier, il n'y a plus de montant restant
+        }
+
+        // Sauvegarder le paiement dans la base de données
+        await paiement.save();
+
+        // Répondre avec le paiement mis à jour
+        return res.status(200).json({
+            message: "Paiement effectué avec succès.",
+            paiement
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error(error);
+        return res.status(500).json({ message: "Erreur lors du paiement de la facture.", error });
     }
 });
-
-
-router.delete("/:id", async (req, res) => {
-    try {
-        await Paiement.findByIdAndDelete(req.params.id);
-        res.json({ message: "Paiement supprimé" });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
 
 
 module.exports = router;

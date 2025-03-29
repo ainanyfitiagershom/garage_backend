@@ -1,5 +1,5 @@
-const Inscription = require("../models/Inscription");
-const PwdOublier = require("../models/PwdOublier");
+const Inscription = require("../models/Utilisateur/Inscription");
+const PwdOublier = require("../models/Utilisateur/PwdOublier");
 
 const deleteOldInscriptions = async () => {
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000); 

@@ -1,8 +1,8 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const Inscription = require("../models/Inscription");
-const User= require("../models/User");
-const Role = require("../models/Role")
+const Inscription = require("../models/Utilisateur/Inscription");
+const User= require("../models/Utilisateur/User");
+const Role = require("../models/Utilisateur/Role")
 const sendMail= require("../utils/mail");
 const mongoose = require("mongoose");
 

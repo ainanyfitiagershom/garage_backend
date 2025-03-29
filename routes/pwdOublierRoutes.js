@@ -1,9 +1,9 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const User= require("../models/User");
+const User= require("../models/Utilisateur/User");
 const sendMail= require("../utils/mail");
 const mongoose = require("mongoose");
-const PwdOublier = require("../models/PwdOublier");
+const PwdOublier = require("../models/Utilisateur/PwdOublier");
 
 const router = express.Router();
 

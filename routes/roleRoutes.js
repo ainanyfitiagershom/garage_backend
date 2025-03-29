@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const Role = require("../models/Role"); 
+const Role = require("../models/Utilisateur/Role"); 
 
 router.get("/roles", async (req, res) => {
   try {
