@@ -3,27 +3,28 @@ const router = express.Router();
 const Client = require('../models/Utilisateur/Client');
 const bcrypt = require('bcrypt');
 
-// Créer un client
-router.post('/', async (req, res) => {
-    try {
-        const hashedPassword = await bcrypt.hash(req.body.mdp, 10);
-        const client = new Client({ ...req.body, mdp: hashedPassword });
-        await client.save();
-        res.status(201).json(client);
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
-});
 
-// Lire tous les clients
-router.get('/', async (req, res) => {
+
+router.post('/Client', async (req, res) => {
     try {
-        const clients = await Client.find();
-        res.json(clients);
+      const { nom, email,mdp, contact, adresse } = req.body;
+  
+      // Créer un nouveau client
+      const newClient = new Client({
+        nom,
+        email,
+        mdp,
+        contact,
+        adresse
+      });
+  
+      await newClient.save(); // Sauvegarder le client dans la base de données
+  
+    res.status(201).json({ message: 'Client créé avec succès', client: newClient });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+      res.status(400).json({ message: error.message });
     }
-});
+  });
 
 // Lire un client par ID
 router.get('/:id', async (req, res) => {
@@ -33,6 +34,17 @@ router.get('/:id', async (req, res) => {
         res.json(client);
     } catch (error) {
         res.status(500).json({ message: error.message });
+    }
+});
+
+
+// Route pour lister tous les clients
+router.get('/', async (req, res) => {
+    try {
+        const clients = await Client.find(); // Récupère tous les clients depuis la base de données
+        res.status(200).json(clients); // Renvoie les clients au format JSON
+    } catch (error) {
+        res.status(500).json({ message: "Erreur lors de la récupération des clients", error: error.message });
     }
 });
 

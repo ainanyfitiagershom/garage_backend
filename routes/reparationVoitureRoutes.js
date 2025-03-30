@@ -1,5 +1,6 @@
 const express = require("express");
-const ReparationVoiture = require("../models/ReparationVoiture");
+const ReparationVoiture = require("../models/Reparation/ReparationVoiture");
+const {  creationReparationVoiture , insererDetailReparationEtPieces } = require('../controllers/reparationController');
 
 const router = express.Router();
 
@@ -70,6 +71,16 @@ router.delete("/:id/details/:detailId", async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
+});
+
+
+
+router.post("/creation-reparation/:idDiagnostic", creationReparationVoiture );
+
+router.post('/ajouter/:idReparationVoiture', async (req, res) => {
+    const { idReparationVoiture } = req.params;
+    const { idTypeReparation, idNiveau, pieces } = req.body;
+    await insererDetailReparationEtPieces(idReparationVoiture, idTypeReparation, idNiveau, pieces, res);
 });
 
 module.exports = router;

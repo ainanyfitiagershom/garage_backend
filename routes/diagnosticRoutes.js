@@ -1,9 +1,17 @@
 const express = require("express");
-const Diagnostic = require("../models/Diagnostic");
+const Diagnostic = require("../models/Reservation/Diagnostic");
 const router = express.Router();
-const { getDiagnosticsParMecanicien,getDiagnostiquesTermines } = require('../controllers/diagnosticController');
-const verifyToken = require('../middlewares/verifyToken');
-const verifyRole = require('../middlewares/verifyRole');
+const { getDiagnosticsParMecanicien,
+    getDiagnostiquesTermines ,
+    listerDiagnosticsClient
+} = require('../controllers/diagnosticController');
+
+const { deposer_voiture
+} = require('../controllers/reparationController');
+
+
+
+const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
 
 // Ajouter un diagnostic
 router.post("/", async (req, res) => {
@@ -72,10 +80,16 @@ router.delete("/:id", async (req, res) => {
 
 
 // Route pour obtenir la liste des diagnostics d'un mécanicien
-// L'utilisateur doit être authentifié et avoir le rôle "Mecanicien"
-router.get('/diagnostics', verifyToken, verifyRole('Mecanicien'), getDiagnosticsParMecanicien);
+// Déclaration de la route Express
+router.get('/mecanicien/:mecanicienId', getDiagnosticsParMecanicien);
 
 // Route pour obtenir les diagnostics terminés
 router.get("/diagnostics/termines",verifyToken, verifyRole('Manager'), getDiagnostiquesTermines);
+
+// Route Express pour récupérer les diagnostics d'un client
+router.get('/client/:clientId', listerDiagnosticsClient);
+
+// Définir le routeur pour le dépôt de voiture
+router.get('/deposer/:idDiagnostic', deposer_voiture);
 
 module.exports = router;

@@ -1,14 +1,12 @@
-const RendezVous = require('../models/RendezVous');
-const Diagnostic = require("../models/Diagnostic");
-const { insertPlanningDiagnostic } = require("./path/to/insertPlanningDiagnostic"); // Importer la fonction d'insertion du planning
+const RendezVous = require('../models/Reservation/RendezVous');
+const Diagnostic = require("../models/Reservation/Diagnostic");
 const { estMecanicienDisponible, insertPlanningDiagnostic } = require("../controllers/planningController");
 
 
 
 const validerOuAnnulerRendezVous = async (req, res) => {
     const { id } = req.params;  // Récupère l'ID du rendez-vous dans les paramètres de l'URL
-    // const { action, dateHeureDebut, dateHeureFin, mecanicienId } = req.body;  // Récupère l'action, la date et l'heure de début et fin, et l'ID du mécanicien depuis le corps de la requête
-
+    const { action } = req.body; 
     try {
         // Recherche le rendez-vous par ID
         const rendezVous = await RendezVous.findById(id);
@@ -34,12 +32,12 @@ const validerOuAnnulerRendezVous = async (req, res) => {
             rendezVous.statut = "Validé";  // Change le statut du rendez-vous en "Confirmé"
             diagnostic.etat = "Confirmé";    // Change le statut du diagnostic en "Confirmé"
 
-            // Insérer le planning du diagnostic
-             // Insérer le planning du diagnostic en utilisant les informations du diagnostic
-             await insertPlanningDiagnostic(diagnostic.mecanicien, diagnostic._id, diagnostic.date_diag, diagnostic.date_diag, res); // Ici, la date de début et de fin est la même pour le diagnostic
         } else if (action === "annuler") {
             rendezVous.statut = "Annulé";    // Change le statut du rendez-vous en "Annulé"
             diagnostic.etat = "Annulé";      // Change le statut du diagnostic en "Annulé"
+
+             // Supprimer l'entrée dans le planning du mécanicien
+             await Planning.findOneAndDelete({ diagnostic: diagnostic._id });
         } else {
             return res.status(400).json({ message: "Action invalide" });
         }

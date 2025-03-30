@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const Categorie = require('../models/Categorie');
+const Categorie = require('../models/Paramettres/Categorie');
 
 // ➤ Ajouter une nouvelle catégorie
 router.post('/', async (req, res) => {

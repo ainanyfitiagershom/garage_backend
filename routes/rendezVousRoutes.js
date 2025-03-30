@@ -3,6 +3,9 @@ const RendezVous = require("../models/Reservation/RendezVous");
 const Diagnostic = require("../models/Reservation/Diagnostic");
 const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
 const { validerOuAnnulerRendezVous, getRendezVousValidesAvecDiagnostic } = require('../controllers/rendezvousController');
+const Client = require("../models/Utilisateur/Client");
+const Categorie = require("../models/Paramettres/Categorie");
+const { estMecanicienDisponible, insertPlanningDiagnostic } = require('../controllers/planningController');
 
 const router = express.Router();
 
@@ -26,28 +29,6 @@ router.post("/", async (req, res) => {
     }
 });
 
-// Obtenir tous les rendez-vous
-router.get("/", async (req, res) => {
-    try {
-        const rendezVous = await RendezVous.find().populate("client voiture");
-        res.json(rendezVous);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
-// Obtenir un rendez-vous par ID
-router.get("/:id", async (req, res) => {
-    try {
-        const rendezVous = await RendezVous.findById(req.params.id).populate("client voiture");
-        if (!rendezVous) {
-            return res.status(404).json({ message: "Rendez-vous non trouvé" });
-        }
-        res.json(rendezVous);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
 
 // Mettre à jour un rendez-vous (changer statut, modifier date, etc.)
 router.put("/:id", async (req, res) => {
@@ -71,53 +52,76 @@ router.delete("/:id", async (req, res) => {
 
 
 
-// Demande de rendez-vous par un client
-router.post("/demandeRendezVoususer/:userId", verifyToken, async (req, res) => {
+/// Demande de rendez-vous par un client
+router.post("/demandeRendezVoususer/:clientId", async (req, res) => {
     try {
-        const {voiture, date_heure_rdv, problemes, commentaire } = req.body;
-  
-        const { ClientId } = req.params;
+        const { voiture, date_heure_rdv, problemes, commentaire } = req.body;
+
+        const clientId = req.params.clientId;  // Correction ici : obtenir le paramètre clientId
+
+        // Vérifier si le client existe
+        const clientExiste = await Client.findById(clientId);
+        if (!clientExiste) {
+            return res.status(404).json({ message: "Client introuvable." });
+        }
+
+
+          // Vérifier si les problèmes sont des ID de catégories valides
+          const categoriesExist = await Categorie.find({ '_id': { $in: problemes } });
+          if (categoriesExist.length !== problemes.length) {
+              return res.status(404).json({ message: "Certaines catégories de problèmes sont invalides." });
+          }
+
         // Créer une nouvelle demande de rendez-vous
         const nouveauRendezVous = new RendezVous({
-            ClientId,
+            client: clientId,   // Lier le rendez-vous au client
             voiture,
             date_heure_rdv,
             problemes,
             commentaire,
             statut: "En attente"
         });
-  
-        // Sauvegarde en base de données
+
+        // Sauvegarder en base de données
         await nouveauRendezVous.save();
         res.status(201).json({ message: "Demande de rendez-vous envoyée", rendezVous: nouveauRendezVous });
     } catch (error) {
         res.status(500).json({ message: "Erreur serveur", error: error.message });
     }
-  });
+});
+
   
 
   // Récupérer tous les rendez-vous en attente
-router.get("/en-attente", verifyToken, verifyRole("Manager"), async (req, res) => {
+  router.get("/liste/attente", async (req, res) => {
     try {
+        // Rechercher les rendez-vous avec le statut "En attente"
         const rendezVousEnAttente = await RendezVous.find({ statut: "En attente" })
             .populate("client", "nom email contact") // Récupérer les infos du client
-            .populate("voiture", "modele annee") // Récupérer les infos de la voiture
-            .populate("problemes", "nom"); // Récupérer les problèmes mentionnés par le client
+            .populate("voiture", "model annee") // Récupérer les infos de la voiture
+            .populate("categorie", "nom"); // Récupérer les problèmes mentionnés par le client
 
+        // Si aucun rendez-vous en attente n'est trouvé
+        if (rendezVousEnAttente.length === 0) {
+            return res.status(404).json({ message: "Aucun rendez-vous en attente trouvé." });
+        }
+
+        // Retourner les rendez-vous en attente
         res.status(200).json(rendezVousEnAttente);
     } catch (error) {
-        res.status(500).json({ message: "Erreur serveur", error });
+        console.error(error);
+        res.status(500).json({ message: "Erreur serveur", error: error.message });
     }
 });
 
 
 // Récupérer un rendez-vous spécifique
-router.get("/:id", verifyToken, verifyRole("Manager"), async (req, res) => {
+router.get("/:id", async (req, res) => {
     try {
         const rendezVousDetail = await RendezVous.findById(req.params.id)
             .populate("client", "nom email contact") // Informations du client
             .populate("voiture", "marque modele annee") // Informations de la voiture
-            .populate("problemes", "nom") // Informations sur les problèmes signalés
+            .populate("categorie", "nom") // Informations sur les problèmes signalés
             .exec();
 
         if (!rendezVousDetail) {
@@ -134,41 +138,56 @@ router.get("/:id", verifyToken, verifyRole("Manager"), async (req, res) => {
 
 // Confirmer un rendez-vous (modifier la date, l'heure et changer le statut en "Confirmé")
 router.put("/confirmer/:id", async (req, res) => {
-    const { date_rendezvous, statut } = req.body;  // Les informations à mettre à jour
+    const { date_rendezvous, mecanicien } = req.body;
+
     // Vérification si la date_rendezvous est fournie
     if (!date_rendezvous) {
         return res.status(400).json({ message: "La date et l'heure du rendez-vous doivent être spécifiées." });
     }
-    const { mecanicien } = req.body; // Le mécanicien choisi par le manager
 
+    // Vérifier si le mécanicien est spécifié
     if (!mecanicien) {
         return res.status(400).json({ message: "Un mécanicien doit être assigné." });
     }
 
     try {
+        // Trouver et mettre à jour le rendez-vous
         const rendezVous = await RendezVous.findByIdAndUpdate(
             req.params.id,
             {
                 date_rendezvous,  // Nouvelle date et heure
-                statut: statut || "Confirmé"  // Statut "Confirmé" si non spécifié
+                statut: "Confirmé"  // Statut "Confirmé" si non spécifié
             },
-            { new: true }  // Retourne le document mis à jour
+            { new: true }  // Retourner le document mis à jour
         )
         .populate("client", "nom email contact") // Informations du client
         .populate("voiture", "marque modele annee") // Informations de la voiture
-        .populate("problemes", "nom"); // Informations des problèmes signalés
+        .populate("categorie", "nom"); // Informations des problèmes signalés
 
         if (!rendezVous) {
             return res.status(404).json({ message: "Rendez-vous non trouvé" });
         }
+
+        // Vérifier si un diagnostic existe déjà pour ce rendez-vous
+        const existingDiagnostic = await Diagnostic.findOne({ rendez_vous: rendezVous._id });
+        if (existingDiagnostic) {
+            return res.status(400).json({ message: "Un diagnostic existe déjà pour ce rendez-vous." });
+        }
+
+        // Vérifier la disponibilité du mécanicien
+        const disponible = await estMecanicienDisponible(mecanicien, date_rendezvous, date_rendezvous);
+        if (!disponible) {
+            return res.status(400).json({ message: "Le mécanicien n'est pas disponible à cette date." });
+        }
+
 
         // Création du diagnostic après la confirmation du rendez-vous
         const diagnostic = new Diagnostic({
             client: rendezVous.client,        // Référence au client du rendez-vous
             voiture: rendezVous.voiture,      // Référence à la voiture du client
             mecanicien: mecanicien,           // Mécanicien affecté
-            rendez_vous:rendezVous.id,
-            date_diag: date_rendezvous,           // Date de création du diagnostic
+            rendez_vous: rendezVous._id,      // Référence au rendez-vous
+            date_diag: date_rendezvous,       // Date de création du diagnostic
             etat: "En attente",               // Initialement en "En attente"
             observation: ""                   // L'observation peut être vide à ce stade
         });
@@ -176,15 +195,18 @@ router.put("/confirmer/:id", async (req, res) => {
         // Sauvegarde du diagnostic
         await diagnostic.save();
 
-        // Retour de la réponse avec le rendez-vous et le diagnostic créé
+        console.log("iddddddd!" + diagnostic._id);
+         // Insérer le diagnostic dans le planning du mécanicien
+         await insertPlanningDiagnostic(mecanicien, diagnostic._id, date_rendezvous, date_rendezvous);
+
+        // Retourner la réponse avec le rendez-vous et le diagnostic créé
         res.status(200).json({ message: "Rendez-vous confirmé et diagnostic créé", rendezVous, diagnostic });
 
-        // Retourner le rendez-vous mis à jour
-        res.status(200).json(rendezVous);
     } catch (error) {
         res.status(500).json({ message: "Erreur lors de la confirmation du rendez-vous", error });
     }
 });
+
 
 
 router.get("rendez-vous/:id", verifyToken, async (req, res) => {
@@ -220,18 +242,40 @@ router.get("rendez-vous/:id", verifyToken, async (req, res) => {
 
 
 
-router.get("rendez_vous/client/:clientId",verifyToken, async (req, res) => {
+router.get("/client/:clientId", async (req, res) => {
     try {
         const { clientId } = req.params;
 
+        // Récupérer les rendez-vous confirmés pour un client donné
         const rendezVousValides = await RendezVous.find({ 
-            client: clientId, 
+            client: clientId,
+            statut: "Confirmé"  // Filtrer uniquement les rendez-vous confirmés
         })
-        .populate("voiture") 
-        .populate("problemes") 
-        .sort({ date_demande: -1 }); // Trier du plus récent au plus ancien
+        .populate("voiture") // Récupérer les infos de la voiture
+        .populate("categorie") // Récupérer les problèmes signalés
+        .sort({ date_demande: -1 }) // Trier du plus récent au plus ancien
+        .lean(); // Convertir en objets JS purs pour manipulation
 
-        res.status(200).json(rendezVousValides);
+        if (!rendezVousValides || rendezVousValides.length === 0) {
+            return res.status(404).json({ message: "Aucun rendez-vous confirmé trouvé pour ce client." });
+        }
+
+        // Récupérer les diagnostics liés aux rendez-vous
+        const rendezVousIds = rendezVousValides.map(rdv => rdv._id);
+        const diagnostics = await Diagnostic.find({ rendez_vous: { $in: rendezVousIds } })
+            .populate("mecanicien", "nom") // Peupler le mécanicien
+            .lean();
+
+        // Associer les diagnostics aux rendez-vous correspondants
+        const rendezVousAvecMecanicien = rendezVousValides.map(rdv => {
+            const diagnostic = diagnostics.find(diag => String(diag.rendez_vous) === String(rdv._id));
+            return {
+                ...rdv,
+                mecanicien: diagnostic ? diagnostic.mecanicien : null // Ajouter le mécanicien
+            };
+        });
+
+        res.status(200).json(rendezVousAvecMecanicien);
     } catch (error) {
         res.status(500).json({ message: "Erreur serveur", error: error.message });
     }
@@ -240,9 +284,10 @@ router.get("rendez_vous/client/:clientId",verifyToken, async (req, res) => {
 
 
 
+
 // Route pour valider ou annuler un rendez-vous
 // L'utilisateur doit être authentifié et doit avoir le rôle 'Manager'
-router.patch('/action/:id', verifyToken, verifyRole('Manager'), validerOuAnnulerRendezVous);
+router.put('/action/:id', validerOuAnnulerRendezVous);
 
 
 

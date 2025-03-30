@@ -1,5 +1,5 @@
 const express = require("express");
-const Niveau = require("../models/Niveau");
+const Niveau = require("../models/Paramettres/Niveau");
 
 const router = express.Router();
 

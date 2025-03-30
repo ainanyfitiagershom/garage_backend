@@ -1,16 +1,16 @@
-const ReparationVoiture = require('../models/ReparationVoiture'); // Le modèle de réparation voiture
-const Diagnostic = require('../models/Diagnostic'); // Le modèle Diagnostic pour récupérer les informations
-const TypeReparation = require("../models/TypeReparation");
-const Piece = require("../models/Piece");
-const TypeReparation = require("../models/TypeReparation");
-const Niveau = require("../models/Niveau");
+const ReparationVoiture = require('../models/Reparation/ReparationVoiture'); // Le modèle de réparation voiture
+const Diagnostic = require('../models/Reservation/Diagnostic'); // Le modèle Diagnostic pour récupérer les informations
+const Piece = require("../models/Reparation/Piece");
+const TypeReparation = require("../models/Reparation/TypeReparation");
+const Niveau = require("../models/Paramettres/Niveau");
 
 const { estMecanicienDisponible } = require("../controllers/planningController");
 
 
+
+
 const deposer_voiture = async (req, res) => {
     const { idDiagnostic } = req.params;  // On récupère l'ID du diagnostic depuis les params de l'URL
-    const { dateDepot } = req.body;  // On récupère la date de dépôt depuis le body de la requête
 
     try {
         // Récupérer le diagnostic par son ID
@@ -20,13 +20,17 @@ const deposer_voiture = async (req, res) => {
             return res.status(404).json({ message: "Diagnostic non trouvé" });
         }
 
-        // Créer une nouvelle réparation en utilisant les informations du diagnostic
+        // Modifier le statut du diagnostic en "Valide"
+        diagnostic.etat = "Validé";  // Mettre à jour le statut du diagnostic
+        await diagnostic.save(); // Sauvegarder les changements du diagnostic
+
+        // Créer une nouvelle réparation avec la date actuelle
         const nouvelleReparation = new ReparationVoiture({
             client: diagnostic.client,       // Utilisation du client du diagnostic
             voiture: diagnostic.voiture,     // Utilisation de la voiture du diagnostic
             diagnostic: diagnostic._id,      // Ajout de la référence au diagnostic
-            date_depot: dateDepot,           // Date de dépôt fournie dans le corps de la requête
-            etat: "En attente",                // L'état initial est "En cours"
+            date_depot: new Date(),          // Date actuelle (maintenant)
+            etat: "En attente",              // L'état initial est "En attente"
         });
 
         // Sauvegarder la nouvelle réparation dans la base de données
@@ -44,14 +48,19 @@ const deposer_voiture = async (req, res) => {
 
 
 
-
-async function creationReparationVoiture(idDiagnostic , idTypeReparation, niveauDifficulte, res) {
+async function creationReparationVoiture(req, res) {
     try {
+        const { idDiagnostic } = req.params;
+        const { idTypeReparation, niveauDifficulte } = req.body;  
         // Récupérer le diagnostic associé à l'ID donné
-        const diagnostic = await Diagnostic.findById(idDiagnostic).populate('client voiture');
+        const diagnostic = await Diagnostic.findById(idDiagnostic).populate('client voiture mecanicien');
         if (!diagnostic) {
             throw new Error("Diagnostic introuvable.");
         }
+
+        // Modifier l'état du diagnostic en "Terminé"
+        diagnostic.etat = "Terminé";
+        await diagnostic.save(); // Sauvegarder la modification du diagnostic
 
         // Vérifier si une réparation existe déjà pour ce diagnostic
         let reparation = await ReparationVoiture.findOne({ diagnostic: idDiagnostic });
@@ -73,7 +82,6 @@ async function creationReparationVoiture(idDiagnostic , idTypeReparation, niveau
             await reparation.save();
         }
 
-
         // Récupérer le type de réparation
         const typeReparation = await TypeReparation.findById(idTypeReparation);
         if (!typeReparation) {
@@ -86,17 +94,20 @@ async function creationReparationVoiture(idDiagnostic , idTypeReparation, niveau
             return res.status(404).json({ message: "Niveau de difficulté introuvable." });
         }
 
-        // Calcul du prix ajusté en fonction du niveau de difficulté
-        const prixAjuste = typeReparation.prix * (niveau.pourcentage / 100);
+         // Calcul du prix ajusté en fonction du niveau de difficulté
+         if (isNaN(typeReparation.prix_base) || isNaN(niveau.pourcentage)) {
+            return res.status(400).json({ message: "Les données de prix ou de pourcentage sont incorrectes." });
+        }
+        const prixAjuste = typeReparation.prix_base * (niveau.pourcentage / 100);
 
         // Créer un nouveau détail de réparation pour ce diagnostic
         const detailReparation = {
-            id_type_reparation: typeReparation._id,
+            id_type_reparation: idTypeReparation,
             mecaniciens: [diagnostic.mecanicien], // Associer le mécanicien qui a fait le diagnostic
-            difficulte: niveau._id,
+            difficulte: niveauDifficulte,
             etat: "Terminé",  // L'état est déjà "Terminé"
             prix: prixAjuste,  // Prix ajusté selon le niveau
-            duree_estimee: typeReparation.duree_estimee,  // Durée estimée
+            duree_estimee: typeReparation.temps_estime,  // Durée estimée
             date_heure_debut: diagnostic.date, // La date du diagnostic comme début
             date_heure_fin: diagnostic.date, // La date du diagnostic comme fin
         };
@@ -118,7 +129,7 @@ async function creationReparationVoiture(idDiagnostic , idTypeReparation, niveau
         console.error(error);
         return res.status(500).json({ message: "Erreur lors de la création de la réparation et du détail." });
     }
-};
+}
 
 
 
@@ -238,7 +249,7 @@ const ajouterTypeReparationAReparation = async (idReparationVoiture, idTypeRepar
         }
 
         // Calcul du prix ajusté en fonction du niveau de difficulté
-        const prixAjuste = typeReparation.prix * (niveau.pourcentage / 100);
+        const prixAjuste = typeReparation.prix_base * (niveau.pourcentage / 100);
 
         // Ajouter le type de réparation avec le prix ajusté
         reparation.details_reparation.push({
@@ -247,7 +258,7 @@ const ajouterTypeReparationAReparation = async (idReparationVoiture, idTypeRepar
             difficulte: idNiveau,
             etat: "En attente", // État initial
             prix: prixAjuste, // Prix calculé en fonction du niveau
-            duree_estimee: typeReparation.duree_estimee, // Durée estimée issue du type de réparation
+            duree_estimee: typeReparation.temps_estime, // Durée estimée issue du type de réparation
             date_heure_debut: null,
             date_heure_fin: null
         });

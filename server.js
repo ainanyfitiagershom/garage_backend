@@ -3,13 +3,18 @@ const cors = require("cors");
 require("dotenv").config();
 const connectDB = require("./config/db");
 const deleteOldInscriptions = require("./utils/cleanup");
-
 const authRoutes = require("./routes/authRoutes");
 const inscriptionRoutes = require("./routes/inscriptionRoutes");
 const pwdOublierRoutes = require("./routes/pwdOublierRoutes");
 const voitureRoutes = require("./routes/voitureRoutes");
 const roleRoutes = require("./routes/roleRoutes");
 const clientRoutes = require('./routes/clientRoutes');
+const NiveauRoutes = require('./routes/niveauRoutes');
+const CategorieRoutes = require('./routes/categorieRoutes');
+const RendezVousRoutes = require("./routes/rendezVousRoutes");
+const DiagnosticRoutes = require("./routes/diagnosticRoutes");
+const ReparationVoitureRoutes = require("./routes/reparationVoitureRoutes");
+
 const app = express();
 connectDB();
 
@@ -21,8 +26,13 @@ app.use("/api/inscription", inscriptionRoutes);
 app.use("/api/pwdOublier", pwdOublierRoutes);
 app.use("/api/voiture", voitureRoutes);
 app.use("/api/role", roleRoutes);
-app.use('/clients', clientRoutes);
+app.use('/api/client', clientRoutes);
 
+app.use('/api/niveau', NiveauRoutes);
+app.use('/api/categorie', CategorieRoutes);
+app.use('/api/rdv', RendezVousRoutes);
+app.use('/api/diag', DiagnosticRoutes);
+app.use('/api/reparation', ReparationVoitureRoutes);
 
 setInterval(deleteOldInscriptions, 60 * 1000);
 

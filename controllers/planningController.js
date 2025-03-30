@@ -1,7 +1,9 @@
-const PlanningMecanicien = require("../models/PlanningMecanicien");
-const Diagnostic = require("../models/Diagnostic");
-const ReparationVoiture = require("../models/ReparationVoiture");
-const AbsenceMecanicien = require("../models/AbsenceMecanicien");
+const PlanningMecanicien = require("../models/Reservation/PlanningMecanicien");
+const Diagnostic = require("../models/Reservation/Diagnostic");
+const ReparationVoiture = require("../models/Reparation/ReparationVoiture");
+const AbsenceMecanicien = require("../models/Reservation/AbsenceMecanicien");
+const User = require("../models/Utilisateur/User");
+
 
 const getPlanningsReserves = async (req, res) => {
     try {
@@ -33,18 +35,18 @@ const getPlanningsReserves = async (req, res) => {
 
 
 
-const insertPlanningDiagnostic = async ( mecanicienId, idDiagnostic, dateHeureDebut, dateHeureFin, res) => {
+const insertPlanningDiagnostic = async ( mecanicienId, idDiagnostic, dateHeureDebut, dateHeureFin) => {
     try {
         // Vérifier que le diagnostic existe
         const diagnostic = await Diagnostic.findById(idDiagnostic).populate("client voiture");
         if (!diagnostic) {
-            return res.status(404).json({ message: "Diagnostic non trouvé." });
+            return { success: false, message: "Diagnostic non trouvé.", error };
         }
 
         // Vérifier que le mécanicien existe
         const mecanicien = await User.findById(mecanicienId);
         if (!mecanicien) {
-            return res.status(404).json({ message: "Mécanicien non trouvé." });
+            return { success: false, message: "Mécanicien non trouvé.", error };
         }
 
         // Vérifier la disponibilité du mécanicien
@@ -60,7 +62,7 @@ const insertPlanningDiagnostic = async ( mecanicienId, idDiagnostic, dateHeureDe
         });
 
         if (planningConflict) {
-            return res.status(400).json({ message: "Le mécanicien est déjà occupé pendant ce créneau." });
+            return { success: false, message: "Le mécanicien est déjà occupé pendant ce créneau.", error };
         }
 
         // Créer le planning pour le diagnostic
@@ -75,14 +77,9 @@ const insertPlanningDiagnostic = async ( mecanicienId, idDiagnostic, dateHeureDe
 
         // Sauvegarder le planning dans la base de données
         await newPlanning.save();
-
-        res.status(201).json({
-            message: "Planning du diagnostic ajouté avec succès.",
-            planning: newPlanning
-        });
+        return { success: true, message: "Planning du diagnostic ajouté avec succès.", newPlanning };
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Erreur serveur", error: error.message });
     }
 };
 
