@@ -3,8 +3,10 @@ const Diagnostic = require('../models/Reservation/Diagnostic'); // Le modèle Di
 const Piece = require("../models/Reparation/Piece");
 const TypeReparation = require("../models/Reparation/TypeReparation");
 const Niveau = require("../models/Paramettres/Niveau");
+const PlanningMecanicien = require("../models/Reservation/PlanningMecanicien");
 
-const { estMecanicienDisponible } = require("../controllers/planningController");
+
+const { estMecanicienDisponible, insertPlanningReparation } = require("../controllers/planningController");
 
 
 
@@ -165,19 +167,19 @@ const getReparationByDiagnostic = async (req, res) => {
 
 
 
-const ajouterPieceATypeReparation = async (idReparationVoiture, idTypeReparation, idPiece, nombre , res) => {
+const ajouterPieceATypeReparation = async (idReparationVoiture, idTypeReparation, idPiece, nombre ) => {
     try {
 
         // Vérifier si la réparation existe
         const reparation = await ReparationVoiture.findById(idReparationVoiture);
         if (!reparation) {
-            return res.status(404).json({ message: "Réparation non trouvée." });
+            return { success: false, message: "Réparation non trouvée.", error };
         }
 
         // Récupérer les informations de la pièce
         const piece = await Piece.findById(idPiece);
         if (!piece) {
-            return res.status(404).json({ message: "Pièce non trouvée." });
+            return { success: false, message: "Pièce non trouvée", error };
         }
 
         // Si le prix de la pièce est null, gérer cette situation (par exemple, mettre à 0 ou une autre valeur)
@@ -207,36 +209,35 @@ const ajouterPieceATypeReparation = async (idReparationVoiture, idTypeReparation
         // Sauvegarder les modifications dans la réparation
         await reparation.save();
 
-        res.status(200).json({
-            message: "Pièce ajoutée/modifiée avec succès au type de réparation.",
-            reparation,
-        });
+
+        return { success: true, message: "Pièce ajoutée/modifiée avec succès au type de réparation.", reparation };
+
     } catch (error) {
-        res.status(500).json({ message: "Erreur serveur", error: error.message });
+        console.log(error);
     }
 };
 
 
 
-const ajouterTypeReparationAReparation = async (idReparationVoiture, idTypeReparation, idNiveau, res) => {
+const ajouterTypeReparationAReparation = async (idReparationVoiture, idTypeReparation, idNiveau) => {
     try {
 
         // Vérifier si la réparation voiture existe
         const reparation = await ReparationVoiture.findById(idReparationVoiture);
         if (!reparation) {
-            return res.status(404).json({ message: "Réparation voiture non trouvée." });
+            return { success: false, message: "Réparation non trouvée.", error };
         }
 
         // Vérifier si le type de réparation existe
         const typeReparation = await TypeReparation.findById(idTypeReparation);
         if (!typeReparation) {
-            return res.status(404).json({ message: "Type de réparation non trouvé." });
+            return { success: false, message: "Type de réparation non trouvé.", error };
         }
 
         // Vérifier si le niveau de difficulté existe
         const niveau = await Niveau.findById(idNiveau);
         if (!niveau) {
-            return res.status(404).json({ message: "Niveau de difficulté non trouvé." });
+            return { success: false, message: "Niveau de difficulté non trouvé.", error };
         }
 
         // Vérifier si le type de réparation est déjà ajouté
@@ -245,7 +246,8 @@ const ajouterTypeReparationAReparation = async (idReparationVoiture, idTypeRepar
         );
 
         if (typeReparationExistante) {
-            return res.status(400).json({ message: "Ce type de réparation est déjà ajouté à cette réparation voiture." });
+            return { success: false, message: "Ce type de réparation est déjà ajouté à cette réparation voiture.", error };
+            
         }
 
         // Calcul du prix ajusté en fonction du niveau de difficulté
@@ -266,13 +268,10 @@ const ajouterTypeReparationAReparation = async (idReparationVoiture, idTypeRepar
         // Sauvegarder la réparation mise à jour
         await reparation.save();
 
-        res.status(200).json({
-            message: "Type de réparation ajouté avec succès.",
-            prixAjuste,
-            reparation
-        });
+
+        return { success: true, message: "Type de réparation ajouté avec succès.", reparation };
     } catch (error) {
-        res.status(500).json({ message: "Erreur serveur", error: error.message });
+       console.log(error);
     }
 };
 
@@ -281,15 +280,20 @@ const ajouterTypeReparationAReparation = async (idReparationVoiture, idTypeRepar
 const insererDetailReparationEtPieces = async (idReparationVoiture, idTypeReparation, idNiveau, pieces, res) => {
     try {
         // Étape 1 : Ajouter le type de réparation avec son niveau de difficulté
-        await ajouterTypeReparationAReparation(idReparationVoiture, idTypeReparation, idNiveau, res);
+        await ajouterTypeReparationAReparation(idReparationVoiture, idTypeReparation, idNiveau);
 
         // Étape 2 : Ajouter les pièces associées à ce type de réparation
         for (const piece of pieces) {
             const { idPiece, nombre } = piece;
-            await ajouterPieceATypeReparation(idReparationVoiture, idTypeReparation, idPiece, nombre, res);
+            await ajouterPieceATypeReparation(idReparationVoiture, idTypeReparation, idPiece, nombre);
         }
 
-        res.status(200).json({ message: "Détail de réparation et pièces insérés avec succès." });
+        const reparation = await ReparationVoiture.findById(idReparationVoiture);
+        if (!reparation) {
+            return { success: false, message: "Réparation non trouvée.", error };
+        }
+
+        res.status(200).json({ message: "Détail de réparation et pièces insérés avec succès.",reparation});
 
     } catch (error) {
         console.error("Erreur lors de l'insertion du détail de réparation :", error.message);
@@ -420,6 +424,12 @@ const assignerMecanicienAReparation = async (mecanicienId, idReparationVoiture, 
             throw new Error("Détail de réparation introuvable.");
         }
 
+            // Vérifier si le mécanicien est déjà assigné à ce détail de réparation
+            const isAlreadyAssigned = detailReparation.mecaniciens.some(m => m.toString() === mecanicienId);
+            if (isAlreadyAssigned) {
+                return { success: false, message: "Ce mécanicien est déjà assigné à cette réparation." };
+            }
+
         // Vérifier la disponibilité du mécanicien
         const planningExistant = await PlanningMecanicien.findOne({
             mecanicien: mecanicienId,
@@ -459,55 +469,78 @@ const assignerMecanicienAReparation = async (mecanicienId, idReparationVoiture, 
 
 const getDetailReparation = async (idReparationVoiture, idDetailReparation, res) => {
     try {
-        // Trouver la réparation
-        const reparation = await ReparationVoiture.findById(idReparationVoiture).populate({
-            path: 'details_reparation',
-            match: { _id: idDetailReparation },
-            populate: [
-                { path: 'id_type_reparation', model: 'TypeReparation' }, // Ajout du nom du type de réparation
-                { path: 'difficulte', model: 'Niveau' },
-                { path: 'mecaniciens', model: 'User' } // Populer les mécaniciens
-            ]
-        });
+        // Trouver la réparation et peupler les relations nécessaires
+        const reparation = await ReparationVoiture.findById(idReparationVoiture)
+            .populate({
+                path: 'details_reparation',
+                populate: [
+                    { path: 'id_type_reparation', model: 'TypeReparation' }, // Type de réparation
+                    { path: 'difficulte', model: 'Niveau' }, // Niveau de difficulté
+                    { path: 'mecaniciens', model: 'User' } // Mécaniciens
+                ]
+            })
+            .populate({
+                path: 'pieces_utilisees.piece',
+                model: 'Piece' // Récupérer les infos des pièces utilisées
+            });
 
+        // Vérification de l'existence de la réparation
         if (!reparation) {
             return res.status(404).json({ message: "Réparation non trouvée" });
         }
 
-        // Si on trouve le détail de la réparation
-        const detailReparation = reparation.details_reparation[0];
+        // Convertir l'ID en ObjectId si nécessaire
+        const mongoose = require('mongoose');
+        const idDetailReparationObjectId = new mongoose.Types.ObjectId(idDetailReparation);
+
+        // Récupérer le détail spécifique en filtrant après la récupération
+        const detailReparation = reparation.details_reparation.find(
+            detail => detail._id.toString() === idDetailReparationObjectId.toString()
+        );
+
         if (!detailReparation) {
             return res.status(404).json({ message: "Détail de réparation non trouvé" });
         }
 
-        // Récupérer le nom du type de réparation
-        const typeReparation = detailReparation.id_type_reparation;
-        const nomTypeReparation = typeReparation.nom;
+        // Extraction des données nécessaires
+        const { id_type_reparation, duree_estimee, mecaniciens, difficulte, etat, prix, date_heure_debut, date_heure_fin } = detailReparation;
 
-        // Récupérer la durée estimée pour le type de réparation
-        const dureeEstimee = detailReparation.duree_estimee;
+        if (!id_type_reparation) {
+            return res.status(404).json({ message: "Type de réparation non trouvé" });
+        }
 
-        // Retourner les informations du détail de la réparation
-        res.status(200).json({
+        // Récupérer l'ID et le nom du type de réparation
+        const idTypeReparation = id_type_reparation._id.toString();
+        const nomTypeReparation = id_type_reparation.nom;
+
+        // Filtrer les pièces utilisées correspondant à ce type de réparation
+        const piecesUtilisees = reparation.pieces_utilisees.filter(piece => 
+            piece.id_type_reparation?.toString() === idTypeReparation
+        );
+
+        // Retourner les informations du détail de réparation
+        return res.status(200).json({
             idReparationVoiture: reparation._id,
             idDetailReparation: detailReparation._id,
-            nomTypeReparation: nomTypeReparation,  // Nom du type de réparation
-            idTypeReparation: typeReparation._id,
-            mecaniciens: detailReparation.mecaniciens,
-            difficulte: detailReparation.difficulte,
-            etat: detailReparation.etat,
-            prix: detailReparation.prix,
-            dureeEstimee: dureeEstimee,  // Durée estimée de la réparation
-            dateHeureDebut: detailReparation.date_heure_debut,
-            dateHeureFin: detailReparation.date_heure_fin,
-            piecesUtilisees: reparation.pieces_utilisees.filter(piece =>
-                piece.id_type_reparation.toString() === detailReparation.id_type_reparation.toString()
-            )
+            nomTypeReparation,
+            idTypeReparation,
+            mecaniciens,
+            difficulte,
+            etat,
+            prix,
+            dureeEstimee: duree_estimee,
+            dateHeureDebut: date_heure_debut,
+            dateHeureFin: date_heure_fin,
+            piecesUtilisees
         });
+
     } catch (error) {
-        res.status(500).json({ message: "Erreur du serveur", error: error.message });
+        console.error("Erreur dans getDetailReparation:", error);
+        return res.status(500).json({ message: "Erreur du serveur", error: error.message });
     }
 };
+
+
 
 
 
@@ -590,13 +623,7 @@ const validerDetailReparationParType = async (idReparationVoiture, idTypeReparat
         // Mettre à jour le statut du détail de réparation à "Confirmé"
         detailReparation.etat = 'Confirmé';
 
-        // Mettre à jour les pièces utilisées pour ce détail de réparation à "Valide"
-        reparation.pieces_utilisees.forEach(piece => {
-            if (piece.id_type_reparation.toString() === idTypeReparation) {
-                piece.etat = 'Valide';
-            }
-        });
-
+       
         // Enregistrer les modifications de la réparation
         await reparation.save();
 

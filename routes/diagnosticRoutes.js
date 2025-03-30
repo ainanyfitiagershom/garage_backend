@@ -6,7 +6,8 @@ const { getDiagnosticsParMecanicien,
     listerDiagnosticsClient
 } = require('../controllers/diagnosticController');
 
-const { deposer_voiture
+const { deposer_voiture ,
+    getReparationByDiagnostic
 } = require('../controllers/reparationController');
 
 
@@ -83,13 +84,17 @@ router.delete("/:id", async (req, res) => {
 // Déclaration de la route Express
 router.get('/mecanicien/:mecanicienId', getDiagnosticsParMecanicien);
 
-// Route pour obtenir les diagnostics terminés
-router.get("/diagnostics/termines",verifyToken, verifyRole('Manager'), getDiagnostiquesTermines);
 
 // Route Express pour récupérer les diagnostics d'un client
 router.get('/client/:clientId', listerDiagnosticsClient);
 
 // Définir le routeur pour le dépôt de voiture
 router.get('/deposer/:idDiagnostic', deposer_voiture);
+
+// Route pour récupérer les diagnostics terminés
+router.get('/liste/termines', getDiagnostiquesTermines);
+
+// Route pour récupérer la réparation par l'ID du diagnostic
+router.get('/reparations/:idDiagnostic', getReparationByDiagnostic);
 
 module.exports = router;

@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const PlanningMecanicien = require("../models/PlanningMecanicien");
-const User = require("../models/User");
+const PlanningMecanicien = require("../models/Reservation/PlanningMecanicien");
+const User = require("../models/Utilisateur/User");
+const { getPlanningsReserves } = require("../controllers/planningController");
 
 router.post("/", async (req, res) => {
     try {
@@ -77,5 +78,8 @@ router.delete("/:id", async (req, res) => {
     }
 });
 
+
+// Route pour récupérer les plannings réservés ou en cours
+router.get("/mecanicien/reserves", getPlanningsReserves);
 
 module.exports = router;

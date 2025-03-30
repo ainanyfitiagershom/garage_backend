@@ -14,6 +14,7 @@ const CategorieRoutes = require('./routes/categorieRoutes');
 const RendezVousRoutes = require("./routes/rendezVousRoutes");
 const DiagnosticRoutes = require("./routes/diagnosticRoutes");
 const ReparationVoitureRoutes = require("./routes/reparationVoitureRoutes");
+const PlanningRoutes = require("./routes/planningRoutes");
 
 const app = express();
 connectDB();
@@ -33,6 +34,7 @@ app.use('/api/categorie', CategorieRoutes);
 app.use('/api/rdv', RendezVousRoutes);
 app.use('/api/diag', DiagnosticRoutes);
 app.use('/api/reparation', ReparationVoitureRoutes);
+app.use('/api/planning', PlanningRoutes);
 
 setInterval(deleteOldInscriptions, 60 * 1000);
 

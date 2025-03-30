@@ -1,8 +1,11 @@
 const express = require("express");
 const ReparationVoiture = require("../models/Reparation/ReparationVoiture");
-const {  creationReparationVoiture , insererDetailReparationEtPieces } = require('../controllers/reparationController');
+const {  creationReparationVoiture , 
+    insererDetailReparationEtPieces , 
+    getDetailReparation} = require('../controllers/reparationController');
 
 const router = express.Router();
+const { assignerMecanicienAReparation } = require("../controllers/reparationController");
 
 // Ajouter une réparation de voiture avec des détails
 router.post("/", async (req, res) => {
@@ -82,5 +85,51 @@ router.post('/ajouter/:idReparationVoiture', async (req, res) => {
     const { idTypeReparation, idNiveau, pieces } = req.body;
     await insererDetailReparationEtPieces(idReparationVoiture, idTypeReparation, idNiveau, pieces, res);
 });
+
+// Route pour récupérer les détails d'une réparation spécifique
+router.get('/detail/:idReparationVoiture/:idDetailReparation', async (req, res) => {
+    const { idReparationVoiture, idDetailReparation } = req.params; // Récupérer les ID depuis les params de l'URL
+    await getDetailReparation(idReparationVoiture, idDetailReparation, res); // Appeler la fonction du contrôleur
+});
+
+
+
+
+
+router.post("/assigner-mecanicien", async (req, res) => {
+    try {
+        const { mecanicienId, idReparationVoiture, idTypeReparation, dateHeureDebut, dateHeureFin } = req.body;
+
+        // Vérifier que toutes les données sont présentes
+        if (!mecanicienId || !idReparationVoiture || !idTypeReparation || !dateHeureDebut || !dateHeureFin) {
+            return res.status(400).json({ message: "Tous les champs sont obligatoires." });
+        }
+
+        // Appeler la fonction d'assignation
+        const result = await assignerMecanicienAReparation(mecanicienId, idReparationVoiture, idTypeReparation, dateHeureDebut, dateHeureFin);
+        const reparation = await ReparationVoiture.findById(idReparationVoiture);
+        // Vérifier si l'assignation a échoué
+        if (!result.success) {
+            return res.status(400).json({ message: result.message ,reparation});
+        }
+
+        return res.status(200).json(result);
+    } catch (error) {
+        console.error("Erreur lors de l'assignation du mécanicien :", error);
+        return res.status(500).json({ message: "Erreur du serveur", error: error.message });
+    }
+});
+
+
+
+// Route pour valider un détail de réparation par type
+router.get("/valider/:idReparationVoiture/:idTypeReparation", async (req, res) => {
+    const { idReparationVoiture, idTypeReparation } = req.params;
+    await validerDetailReparationParType(idReparationVoiture, idTypeReparation, res);
+    const reparation = await ReparationVoiture.findById(idReparationVoiture);
+    return res.status(400).json({ message: result.message ,reparation});
+});
+
+
 
 module.exports = router;

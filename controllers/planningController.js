@@ -7,27 +7,38 @@ const User = require("../models/Utilisateur/User");
 
 const getPlanningsReserves = async (req, res) => {
     try {
-        // Récupérer les plannings réservés
-        const plannings = await PlanningMecanicien.find({ statut: "Réservé" })
-            .populate("mecanicien", "nom prenom") // Récupérer le nom et prénom du mécanicien
-            .sort({ date_heure_debut: 1 }); // Trier les résultats par date de début
+        // Récupérer les plannings avec statut "Réservé" ou "En cours"
+        const plannings = await PlanningMecanicien.find({ statut: { $in: ["Réservé", "En cours"] } })
+            .populate("mecanicien", "nom prenom") // Populate le mécanicien
+            .sort({ date_heure_debut: 1 }); // Trier par date de début
 
-        // Ajouter les informations du diagnostic ou de la réparation
-        for (let planning of plannings) {
+        // Récupérer tous les diagnostics et réparations en parallèle
+        const tasks = plannings.map(async (planning) => {
+            let details = null;
+
             if (planning.type_tache === "Diagnostic") {
-                // Si la tâche est un diagnostic, peupler le diagnostic et ses détails
-                const diagnostic = await Diagnostic.findById(planning.id_tache)
-                    .populate("client voiture"); // Populate le client et la voiture du diagnostic
-                planning.Details = diagnostic; // Ajouter les détails du diagnostic
+                details = await Diagnostic.findById(planning.id_tache)
+                    .populate("client voiture");
             } else if (planning.type_tache === "Réparation") {
-                // Si la tâche est une réparation, peupler la réparation et ses détails
-                const reparationVoiture = await ReparationVoiture.findById(planning.id_reparation_voiture)
-                    .populate("client voiture"); // Populate le client et la voiture de la réparation
-                planning.Details = reparationVoiture; // Ajouter les détails de la réparation
+                details = await ReparationVoiture.findById(planning.id_tache)
+                    .populate("client voiture");
             }
-        }
 
-        res.status(200).json(plannings);
+            return {
+                _id: planning._id,
+                mecanicien: planning.mecanicien,
+                type_tache: planning.type_tache,
+                date_heure_debut: planning.date_heure_debut,
+                date_heure_fin: planning.date_heure_fin,
+                statut: planning.statut,
+                details: details, // Ajoute les détails du diagnostic ou de la réparation
+            };
+        });
+
+        // Exécuter toutes les requêtes en parallèle et récupérer les résultats
+        const result = await Promise.all(tasks);
+
+        res.status(200).json(result);
     } catch (error) {
         res.status(500).json({ message: "Erreur serveur", error: error.message });
     }
@@ -89,7 +100,7 @@ const insertPlanningReparation = async (mecanicienId, idReparationVoiture, idTyp
         // Recherche la réparation associée à l'idReparationVoiture
         const reparation = await ReparationVoiture.findById(idReparationVoiture);
         if (!reparation) {
-            return res.status(404).json({ message: "Réparation non trouvée" });
+            return { success: false, message: "Reparation non trouvé.", error };
         }
 
         // Vérification si le mécanicien est déjà occupé à la même heure
@@ -103,7 +114,7 @@ const insertPlanningReparation = async (mecanicienId, idReparationVoiture, idTyp
         });
 
         if (existPlanning) {
-            return res.status(400).json({ message: "Le mécanicien est déjà réservé pour cette période" });
+            return { success: false, message: "Le mécanicien est déjà réservé pour cette période", error };
         }
 
         // Créer le planning pour la réparation
@@ -120,13 +131,12 @@ const insertPlanningReparation = async (mecanicienId, idReparationVoiture, idTyp
         // Sauvegarder le planning dans la base de données
         await newPlanning.save();
 
-        return res.status(200).json({
-            message: "Planning de réparation ajouté avec succès",
-            planning: newPlanning
-        });
+        return { success: true, message:"Planning de réparation ajouté avec succès", newPlanning };
+
+        
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Erreur du serveur", error: error.message });
+        return { success: false, message:error };
     }
 };
 
