@@ -8,14 +8,14 @@ const ReparationVoitureSchema = new mongoose.Schema({
     date_debut: { type: Date },
     date_fin: { type: Date },
     date_recup: { type: Date },
-    etat: { type: String, enum: ["En attente","En cours", "Terminé", "Annulé"], default: "En attente" },
+    etat: { type: String, enum: ["En attente","En cours","Confirmé","Validé", "Terminé", "Annulé"], default: "En attente" },
     // Détails de réparation imbriqués ici
     details_reparation: [
         {
             id_type_reparation: { type: mongoose.Schema.Types.ObjectId, ref: "TypeReparation", required: true },
             mecaniciens: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], 
             difficulte: { type: mongoose.Schema.Types.ObjectId, ref: "Niveau", required: true },
-            etat: { type: String, enum: ["En attente", "En cours","Terminé", "Annulé"], default: "En attente" },
+            etat: { type: String, enum: ["En attente", "En cours","Confirmé","Validé","Terminé", "Annulé"], default: "En attente" },
             prix: { type: Number, required: true }, // Prix de la réparation
             
             // Durée estimée pour le type de réparation (en minutes)

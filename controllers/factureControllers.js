@@ -1,5 +1,5 @@
 const Facture = require("../models/Facture");  // Assurez-vous d'importer le modèle de Facture
-const ReparationVoiture = require("../models/ReparationVoiture");  // Assurez-vous d'importer le modèle de ReparationVoiture
+const ReparationVoiture = require("../models/Reparation/ReparationVoiture");  // Assurez-vous d'importer le modèle de ReparationVoiture
 
 const validerReparationEtGenererFacture = async (idReparationVoiture, res) => {
     try {
@@ -14,7 +14,7 @@ const validerReparationEtGenererFacture = async (idReparationVoiture, res) => {
 
         // Vérifier que tous les détails de la réparation sont confirmés par le client
         const detailsNonValidés = reparation.details_reparation.filter(
-            (detail) => detail.etat !== "Confirmé"
+            (detail) => detail.etat !== "Validé" && detail.etat !== "Terminé"
         );
 
         if (detailsNonValidés.length > 0) {

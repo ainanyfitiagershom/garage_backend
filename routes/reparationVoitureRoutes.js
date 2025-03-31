@@ -5,7 +5,14 @@ const {  creationReparationVoiture ,
     getDetailReparation} = require('../controllers/reparationController');
 
 const router = express.Router();
-const { assignerMecanicienAReparation } = require("../controllers/reparationController");
+const { assignerMecanicienAReparation ,
+    validerDetailReparationParType , 
+    ValiderReparationsManager ,
+    validerOuAnnulerDetailReparation,
+    choisirPiecePriseOuNon} = require("../controllers/reparationController");
+
+const {  validerReparationEtGenererFacture } = require('../controllers/factureControllers');
+    
 
 // Ajouter une réparation de voiture avec des détails
 router.post("/", async (req, res) => {
@@ -123,11 +130,80 @@ router.post("/assigner-mecanicien", async (req, res) => {
 
 
 // Route pour valider un détail de réparation par type
-router.get("/valider/:idReparationVoiture/:idTypeReparation", async (req, res) => {
-    const { idReparationVoiture, idTypeReparation } = req.params;
-    await validerDetailReparationParType(idReparationVoiture, idTypeReparation, res);
-    const reparation = await ReparationVoiture.findById(idReparationVoiture);
-    return res.status(400).json({ message: result.message ,reparation});
+router.put("/valider/:idReparationVoiture/:idTypeReparation", async (req, res) => {
+    try {
+        const idReparationVoiture = req.params.idReparationVoiture;
+        const idTypeReparation  = req.params.idTypeReparation ;
+
+       // console.log("Body reçu:", req.body); // 🔍 Vérifie ce qui est reçu
+
+        // Appel de la fonction de validation
+        const result = await validerDetailReparationParType(idReparationVoiture, idTypeReparation);
+
+        // Vérifier la réponse
+        if (!result.success) {
+            return res.status(400).json({ message: result.message });
+        }
+
+        return res.status(200).json({ message: result.message, data: result.data });
+    } catch (error) {
+        return res.status(500).json({ message: "Erreur serveur", error: error.message });
+    }
+});
+
+
+// Route pour valider une réparation
+router.put("/valider/:idReparationVoiture", async (req, res) => {
+    try {
+        const { idReparationVoiture } = req.params;
+        const result = await ValiderReparationsManager(idReparationVoiture);
+
+        if (!result.success) {
+            return res.status(400).json(result);
+        }
+
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(500).json({ message: "Erreur du serveur", error: error.message });
+    }
+});
+
+
+
+// Route pour valider ou annuler un détail de réparation par le client
+router.put("/:idReparationVoiture/:idTypeReparation/action/:action", async (req, res) => {
+    try {
+        const { idReparationVoiture, idTypeReparation, action } = req.params;
+        await validerOuAnnulerDetailReparation(idReparationVoiture, idTypeReparation, action, res);
+    } catch (error) {
+        res.status(500).json({ message: "Erreur du serveur", error: error.message });
+    }
+});
+
+
+// Route pour choisir si une pièce est prise ou non (avec body)
+router.put("/:idReparationVoiture", async (req, res) => {
+    try {
+        const { idTypeReparation, idPiece, prise, nombre } = req.body;
+        const { idReparationVoiture } = req.params;
+
+        if (!idTypeReparation || !idPiece || prise === undefined || nombre === undefined) {
+            return res.status(400).json({ message: "Tous les champs (idTypeReparation, idPiece, prise, nombre) sont requis." });
+        }
+
+        await choisirPiecePriseOuNon(idReparationVoiture, idTypeReparation, idPiece, prise, parseInt(nombre), res);
+    } catch (error) {
+        res.status(500).json({ message: "Erreur du serveur", error: error.message });
+    }
+});
+
+// Route pour valider une réparation et générer une facture
+router.post("/clientvalider/:idReparationVoiture", async (req, res) => {
+    try {
+        await validerReparationEtGenererFacture(req.params.idReparationVoiture, res);
+    } catch (error) {
+        res.status(500).json({ message: "Erreur du serveur", error: error.message });
+    }
 });
 
 

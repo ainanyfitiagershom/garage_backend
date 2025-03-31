@@ -590,12 +590,11 @@ const obtenirReparationsEtPieces = async (idReparationVoiture) => {
 
 
 
-const validerDetailReparationParType = async (idReparationVoiture, idTypeReparation, res) => {
+const validerDetailReparationParType = async (idReparationVoiture, idTypeReparation) => {
     try {
-        // Trouver la réparation par son ID et les détails de réparation par idTypeReparation
+        // Trouver la réparation
         const reparation = await ReparationVoiture.findById(idReparationVoiture).populate({
             path: 'details_reparation',
-            match: { id_type_reparation: idTypeReparation },
             populate: [
                 { path: 'id_type_reparation', model: 'TypeReparation' },
                 { path: 'mecaniciens', model: 'User' }
@@ -603,72 +602,80 @@ const validerDetailReparationParType = async (idReparationVoiture, idTypeReparat
         });
 
         if (!reparation) {
-            return res.status(404).json({ message: "Réparation non trouvée" });
+            return { success: false, message: "Réparation non trouvée" };
         }
 
-        // Trouver le détail de réparation correspondant à idTypeReparation
+        // Trouver le détail de réparation correspondant
         const detailReparation = reparation.details_reparation.find(d => 
-            d.id_type_reparation.toString() === idTypeReparation
+            d.id_type_reparation && d.id_type_reparation._id.toString() === idTypeReparation
         );
 
         if (!detailReparation) {
-            return res.status(404).json({ message: "Détail de réparation pour ce type de réparation non trouvé" });
+            return { success: false, message: "Détail de réparation pour ce type non trouvé" };
         }
 
         // Vérifier si le détail est déjà confirmé
         if (detailReparation.etat === 'Confirmé') {
-            return res.status(400).json({ message: "Le détail de réparation est déjà confirmé" });
+            return { success: false, message: "Le détail de réparation est déjà confirmé" };
         }
 
-        // Mettre à jour le statut du détail de réparation à "Confirmé"
+        // Mettre à jour l'état à "Confirmé"
         detailReparation.etat = 'Confirmé';
-
-       
-        // Enregistrer les modifications de la réparation
         await reparation.save();
 
-        // Retourner la réponse avec les informations mises à jour
-        res.status(200).json({
-            message: "Détail de réparation validé avec succès.",
-            idReparationVoiture: reparation._id,
-            idTypeReparation: idTypeReparation,
-            etatDetailReparation: detailReparation.etat,
-            mecaniciens: detailReparation.mecaniciens,
-            piecesUtilisees: reparation.pieces_utilisees.filter(piece =>
-                piece.id_type_reparation.toString() === idTypeReparation
+        // Filtrer les pièces utilisées
+        const piecesUtilisees = reparation.pieces_utilisees
+            ? reparation.pieces_utilisees.filter(piece => 
+                piece.id_type_reparation && piece.id_type_reparation.toString() === idTypeReparation
             )
-        });
+            : [];
+
+        return { 
+            success: true, 
+            message: "Détail de réparation validé avec succès.",
+            data: {
+                idReparationVoiture: reparation._id,
+                idTypeReparation: idTypeReparation,
+                etatDetailReparation: detailReparation.etat,
+                mecaniciens: detailReparation.mecaniciens,
+                piecesUtilisees: piecesUtilisees
+            }
+        };
     } catch (error) {
-        res.status(500).json({ message: "Erreur du serveur", error: error.message });
+        return { success: false, message: "Erreur du serveur: " + error.message };
     }
 };
+
+
+
 
 const ValiderReparationsManager = async (idReparationVoiture) => {
     try {
-        // Récupérer la réparation avec tous ses détails
-        const reparation = await ReparationVoiture.findById(idReparationVoiture);
+        // Récupérer la réparation avec ses détails et mécaniciens
+        const reparation = await ReparationVoiture.findById(idReparationVoiture)
+            .populate("details_reparation"); // Vérifier si besoin de populate
+
         if (!reparation) {
-            throw new Error("Réparation non trouvée.");
+            return { success: false, message: "Réparation non trouvée." };
         }
 
-        // Vérifier si tous les détails de la réparation ont des mécaniciens assignés
-        const detailsReparationNonAssignes = reparation.details_reparation.filter(detail => detail.mecaniciens.length === 0);
+        // Vérifier si chaque détail a au moins un mécanicien
+        const detailsNonAssignes = reparation.details_reparation.filter(detail => detail.mecaniciens.length === 0);
 
-        if (detailsReparationNonAssignes.length > 0) {
-            throw new Error("Tous les détails de la réparation n'ont pas encore de mécaniciens assignés.");
+        if (detailsNonAssignes.length > 0) {
+            return { success: false, message: "Tous les détails n'ont pas encore de mécaniciens assignés." };
         }
 
-        // Mettre à jour le statut de la réparation à "Confirmée"
+        // Mettre à jour le statut de la réparation
         reparation.etat = "Confirmé";
-
-        // Sauvegarder la réparation avec son nouveau statut
         await reparation.save();
 
-        return { message: "Réparation confirmée avec succès." };
+        return { success: true, message: "Réparation confirmée avec succès." };
     } catch (error) {
-        throw new Error("Erreur lors de la validation de la réparation : " + error.message);
+        return { success: false, message: "Erreur lors de la validation : " + error.message };
     }
 };
+
 
 
 

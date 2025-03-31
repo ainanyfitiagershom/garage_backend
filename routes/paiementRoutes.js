@@ -3,23 +3,39 @@ const router = express.Router();
 const Paiement = require("../models/Paiement");
 const Facture = require("../models/Facture");
 
-router.put("/paiement/valider/:idPaiement", async (indexDetailPaiement, res) => {
+router.put("/valider/:idPaiement/:detailPaiementId", async (req, res) => {
     try {
-       
+        const  detailPaiementId  = req.params.detailPaiementId; // L'ID du détail de paiement à valider
+
+        // Vérifier que l'ID du détail est fourni
+        if (!detailPaiementId) {
+            return res.status(400).json({ message: "L'ID du détail de paiement est requis." });
+        }
+
         // Trouver le paiement
         const paiement = await Paiement.findById(req.params.idPaiement);
+
+        // Vérifier si le paiement existe
         if (!paiement) {
             return res.status(404).json({ message: "Paiement non trouvé." });
         }
 
-        // Vérifier si le détail de paiement est valide
-        if (!paiement.details_paiement[indexDetailPaiement]) {
-            return res.status(400).json({ message: "Détail de paiement invalide." });
+        // Vérifier si le tableau details_paiement existe et contient des éléments
+        if (!paiement.details_paiement || paiement.details_paiement.length === 0) {
+            return res.status(400).json({ message: "Aucun détail de paiement trouvé pour ce paiement." });
         }
 
-        const detailPaiement = paiement.details_paiement[indexDetailPaiement];
+        // Trouver le détail de paiement correspondant à l'ID fourni
+        const detailPaiement = paiement.details_paiement.find(
+            (detail) => detail._id.toString() === detailPaiementId
+        );
 
-        // Vérifier si l'état est déjà validé
+        // Vérifier si le détail de paiement existe
+        if (!detailPaiement) {
+            return res.status(400).json({ message: "Détail de paiement invalide ou introuvable." });
+        }
+
+        // Vérifier si le détail de paiement est déjà validé
         if (detailPaiement.etat === "Validé") {
             return res.status(400).json({ message: "Ce paiement a déjà été validé." });
         }
@@ -27,22 +43,28 @@ router.put("/paiement/valider/:idPaiement", async (indexDetailPaiement, res) => 
         // Mettre à jour l'état du détail de paiement à "Validé"
         detailPaiement.etat = "Validé";
 
-        // Vérifier si tout le paiement a été validé
-        const montantPayeTotal = paiement.details_paiement.reduce((acc, detail) => acc + detail.montant_paye, 0);
+        // Vérifier si tous les paiements sont validés
+        const montantPayeTotal = paiement.details_paiement.reduce((acc, detail) => {
+            return detail.etat === "Validé" ? acc + detail.montant_paye : acc;
+        }, 0);
+
+        // Mettre à jour le statut global du paiement si tout est payé
         if (montantPayeTotal >= paiement.montant_total_facture) {
-            paiement.statut = "Payé";  // Si le montant total est payé, mettre le statut à "Payé"
+            paiement.statut = "Payé";
         }
 
-        // Sauvegarder le paiement
+        // Sauvegarder les modifications
         await paiement.save();
 
-        // Répondre avec le paiement mis à jour
         return res.status(200).json({ message: "Paiement validé avec succès.", paiement });
+
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: "Erreur lors de la validation du paiement.", error });
     }
 });
+
+
 
 
 

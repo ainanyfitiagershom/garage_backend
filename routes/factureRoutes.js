@@ -3,6 +3,8 @@ const Facture = require("../models/Facture");
 
 const router = express.Router();
 
+const {  voirFacture,listerFactures } = require('../controllers/factureControllers');
+
 // Créer une facture avec détails
 router.post("/", async (req, res) => {
     try {
@@ -79,6 +81,22 @@ router.delete("/:id", async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
+});
+
+
+// Route pour voir la facture d'une réparation
+router.get("/reparation/:idReparationVoiture", async (req, res) => {
+    const { idReparationVoiture } = req.params;
+
+    // Appel de la fonction voirFacture avec l'ID de la réparation et la réponse
+    await voirFacture(idReparationVoiture, res);
+})
+
+
+// Route pour récupérer les factures d'un client spécifique
+router.get('/client/:idClient', (req, res) => {
+    const idClient = req.params.idClient;
+    listerFactures(idClient, res);
 });
 
 module.exports = router;
