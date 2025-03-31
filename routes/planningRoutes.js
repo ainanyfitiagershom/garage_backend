@@ -2,9 +2,13 @@ const express = require("express");
 const router = express.Router();
 const PlanningMecanicien = require("../models/Reservation/PlanningMecanicien");
 const User = require("../models/Utilisateur/User");
-const { getPlanningsReserves } = require("../controllers/planningController");
+const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
+const { getPlanningsReserves ,
+    obtenirPlanningsReserveesMecanicien,
+    commencerReparation,
+    terminerReparation } = require("../controllers/planningController");
 
-router.post("/", async (req, res) => {
+router.post("/",verifyToken, async (req, res) => {
     try {
         const { mecanicien, type_tache, id_tache, date, heure_debut, heure_fin } = req.body;
 
@@ -38,7 +42,7 @@ router.post("/", async (req, res) => {
 });
 
 
-router.put("/:id", async (req, res) => {
+router.put("/:id",verifyToken, async (req, res) => {
     try {
         const { heure_debut, heure_fin, statut } = req.body;
         const planning = await PlanningMecanicien.findById(req.params.id);
@@ -59,7 +63,7 @@ router.put("/:id", async (req, res) => {
 });
 
 
-router.get("/:mecanicienId", async (req, res) => {
+router.get("/:mecanicienId",verifyToken, async (req, res) => {
     try {
         const planning = await PlanningMecanicien.find({ mecanicien: req.params.mecanicienId }).sort({ date: 1 });
         res.json(planning);
@@ -69,7 +73,7 @@ router.get("/:mecanicienId", async (req, res) => {
 });
 
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verifyToken,async (req, res) => {
     try {
         await PlanningMecanicien.findByIdAndDelete(req.params.id);
         res.json({ message: "Créneau supprimé" });
@@ -80,6 +84,27 @@ router.delete("/:id", async (req, res) => {
 
 
 // Route pour récupérer les plannings réservés ou en cours
-router.get("/mecanicien/reserves", getPlanningsReserves);
+router.get("/mecanicien/reserves",verifyToken, getPlanningsReserves);
+
+
+// Route pour obtenir les plannings réservés d'un mécanicien
+router.get("/parmecanicien/:mecanicienId",verifyToken, async (req, res) => {
+    const { mecanicienId } = req.params;
+    await obtenirPlanningsReserveesMecanicien(mecanicienId, res);
+});
+
+
+// Route pour commencer une réparation
+router.put("/reparation/commencer", verifyToken ,async (req, res) => {
+    const { mecanicienId, idReparationVoiture, idTypeReparation } = req.body;
+    await commencerReparation(mecanicienId, idReparationVoiture, idTypeReparation, res);
+});
+
+// Route pour commencer une réparation
+router.put("/reparation/terminer", verifyToken , async (req, res) => {
+    const { mecanicienId, idReparationVoiture, idTypeReparation } = req.body;
+    await terminerReparation(mecanicienId, idReparationVoiture, idTypeReparation, res);
+});
+
 
 module.exports = router;

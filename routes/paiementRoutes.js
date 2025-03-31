@@ -2,8 +2,9 @@ const express = require("express");
 const router = express.Router();
 const Paiement = require("../models/Paiement");
 const Facture = require("../models/Facture");
+const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
 
-router.put("/valider/:idPaiement/:detailPaiementId", async (req, res) => {
+router.put("/valider/:idPaiement/:detailPaiementId", verifyToken,async (req, res) => {
     try {
         const  detailPaiementId  = req.params.detailPaiementId; // L'ID du détail de paiement à valider
 
@@ -68,7 +69,7 @@ router.put("/valider/:idPaiement/:detailPaiementId", async (req, res) => {
 
 
 
-router.put("/paiement/ajouter/:idPaiement", async (req, res) => {
+router.put("/paiement/ajouter/:idPaiement",verifyToken , async (req, res) => {
     try {
         const { montant_paye, mode_paiement } = req.body;
 
@@ -106,7 +107,7 @@ router.put("/paiement/ajouter/:idPaiement", async (req, res) => {
 });
 
 
-router.put("/payer/:idFacture", async (req, res) => {
+router.put("/payer/:idFacture", verifyToken , async (req, res) => {
     try {
         const { montant_paye, mode_paiement } = req.body;
 

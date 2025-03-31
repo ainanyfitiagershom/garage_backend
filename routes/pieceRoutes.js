@@ -1,10 +1,10 @@
 const express = require("express");
-const Piece = require("../models/Piece");
-
+const Piece = require("../models/Reparation/Piece");
 const router = express.Router();
+const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
 
 // Ajouter une nouvelle pièce
-router.post("/", async (req, res) => {
+router.post("/", verifyToken ,async (req, res) => {
     try {
         const { nom, quantite, prix_unitaire } = req.body;
         const nouvellePiece = new Piece({ nom, quantite, prix_unitaire });
@@ -16,7 +16,7 @@ router.post("/", async (req, res) => {
 });
 
 // Obtenir toutes les pièces
-router.get("/", async (req, res) => {
+router.get("/",verifyToken, async (req, res) => {
     try {
         const pieces = await Piece.find();
         res.json(pieces);
@@ -26,7 +26,7 @@ router.get("/", async (req, res) => {
 });
 
 // Obtenir une pièce par ID
-router.get("/:id", async (req, res) => {
+router.get("/:id", verifyToken, async (req, res) => {
     try {
         const piece = await Piece.findById(req.params.id);
         if (!piece) {
@@ -39,7 +39,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Mettre à jour une pièce
-router.put("/:id", async (req, res) => {
+router.put("/:id", verifyToken,async (req, res) => {
     try {
         const { nom, quantite, prix_unitaire } = req.body;
         const piece = await Piece.findByIdAndUpdate(req.params.id, { nom, quantite, prix_unitaire }, { new: true });
@@ -55,7 +55,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // Supprimer une pièce
-router.delete("/:id", async (req, res) => {
+router.delete("/:id",verifyToken, async (req, res) => {
     try {
         const piece = await Piece.findByIdAndDelete(req.params.id);
         if (!piece) {

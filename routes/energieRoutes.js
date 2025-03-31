@@ -1,6 +1,6 @@
 const express = require("express");
-const { verifyToken, verifyRole } = require("../../middlewares/authMiddleware");
-const Energie = require("../../models/CRUD/Energie");
+const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
+const Energie = require("../models/Paramettres/Energie");
 
 const router = express.Router();
 

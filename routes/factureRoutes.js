@@ -2,11 +2,11 @@ const express = require("express");
 const Facture = require("../models/Facture");
 
 const router = express.Router();
-
+const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
 const {  voirFacture,listerFactures } = require('../controllers/factureControllers');
 
 // Créer une facture avec détails
-router.post("/", async (req, res) => {
+router.post("/",verifyToken ,async (req, res) => {
     try {
         const { client, reparation, montant_total, details } = req.body;
 
@@ -29,7 +29,7 @@ router.post("/", async (req, res) => {
 });
 
 // Récupérer toutes les factures avec leurs détails
-router.get("/", async (req, res) => {
+router.get("/",verifyToken, async (req, res) => {
     try {
         const factures = await Facture.find().populate("client reparation");
         res.json(factures);
@@ -39,7 +39,7 @@ router.get("/", async (req, res) => {
 });
 
 // Mettre à jour une facture (ajouter un paiement ou modifier les détails)
-router.put("/:id", async (req, res) => {
+router.put("/:id", verifyToken, async (req, res) => {
     try {
         const { date_paiement, mode_paiement, details } = req.body;
 
@@ -70,7 +70,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // Supprimer une facture
-router.delete("/:id", async (req, res) => {
+router.delete("/:id",verifyToken, async (req, res) => {
     try {
         const facture = await Facture.findByIdAndDelete(req.params.id);
         if (!facture) {
@@ -85,7 +85,7 @@ router.delete("/:id", async (req, res) => {
 
 
 // Route pour voir la facture d'une réparation
-router.get("/reparation/:idReparationVoiture", async (req, res) => {
+router.get("/reparation/:idReparationVoiture", verifyToken, async (req, res) => {
     const { idReparationVoiture } = req.params;
 
     // Appel de la fonction voirFacture avec l'ID de la réparation et la réponse
@@ -94,7 +94,7 @@ router.get("/reparation/:idReparationVoiture", async (req, res) => {
 
 
 // Route pour récupérer les factures d'un client spécifique
-router.get('/client/:idClient', (req, res) => {
+router.get('/client/:idClient', verifyToken ,(req, res) => {
     const idClient = req.params.idClient;
     listerFactures(idClient, res);
 });

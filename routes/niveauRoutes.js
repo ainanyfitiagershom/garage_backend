@@ -1,10 +1,10 @@
 const express = require("express");
 const Niveau = require("../models/Paramettres/Niveau");
-
+const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
 const router = express.Router();
 
 // Ajouter un niveau de difficulté
-router.post("/", async (req, res) => {
+router.post("/", verifyToken,async (req, res) => {
     try {
         const { nom, pourcentage } = req.body;
 
@@ -18,7 +18,7 @@ router.post("/", async (req, res) => {
 });
 
 // Obtenir tous les niveaux
-router.get("/", async (req, res) => {
+router.get("/",verifyToken, async (req, res) => {
     try {
         const niveaux = await Niveau.find();
         res.json(niveaux);
@@ -28,7 +28,7 @@ router.get("/", async (req, res) => {
 });
 
 // Obtenir un niveau par ID
-router.get("/:id", async (req, res) => {
+router.get("/:id", verifyToken,async (req, res) => {
     try {
         const niveau = await Niveau.findById(req.params.id);
         if (!niveau) {
@@ -41,7 +41,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Mettre à jour un niveau
-router.put("/:id", async (req, res) => {
+router.put("/:id", verifyToken, async (req, res) => {
     try {
         const niveau = await Niveau.findByIdAndUpdate(req.params.id, req.body, { new: true });
         res.json(niveau);
@@ -51,7 +51,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // Supprimer un niveau
-router.delete("/:id", async (req, res) => {
+router.delete("/:id",verifyToken, async (req, res) => {
     try {
         await Niveau.findByIdAndDelete(req.params.id);
         res.json({ message: "Niveau supprimé" });

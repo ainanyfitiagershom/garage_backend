@@ -1,10 +1,10 @@
 const express = require("express");
-const { verifyToken, verifyRole } = require("../../middlewares/authMiddleware");
-const Transmission = require("../../models/CRUD/Transmission");
+const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
+const Transmission = require("../models/Paramettres/Transmission");
 
 const router = express.Router();
 
-router.post("/transmissions", verifyToken, verifyRole("Manager"), async (req, res) => {
+router.post("/transmissions", verifyToken , async (req, res) => {
   try {
     const { name } = req.body;
     const transmission = new Transmission({ name });
@@ -15,7 +15,7 @@ router.post("/transmissions", verifyToken, verifyRole("Manager"), async (req, re
   }
 });
 
-router.get("/transmissions", async (req, res) => {
+router.get("/transmissions", verifyToken , async (req, res) => {
   try {
     const transmissions = await Transmission.find();
     res.status(200).json(transmissions);
@@ -24,7 +24,7 @@ router.get("/transmissions", async (req, res) => {
   }
 });
 
-router.put("/transmissions/:id", verifyToken, verifyRole("Manager"), async (req, res) => {
+router.put("/transmissions/:id", verifyToken , async (req, res) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
@@ -36,7 +36,7 @@ router.put("/transmissions/:id", verifyToken, verifyRole("Manager"), async (req,
   }
 });
 
-router.delete("/transmissions/:id", verifyToken, verifyRole("Manager"), async (req, res) => {
+router.delete("/transmissions/:id", verifyToken , async (req, res) => {
   try {
     const { id } = req.params;
     const transmission = await Transmission.findByIdAndDelete(id);

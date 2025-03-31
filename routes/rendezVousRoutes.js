@@ -10,7 +10,7 @@ const { estMecanicienDisponible, insertPlanningDiagnostic } = require('../contro
 const router = express.Router();
 
 // Ajouter un rendez-vous
-router.post("/", async (req, res) => {
+router.post("/", verifyToken ,async (req, res) => {
     try {
         const { client, voiture, date_demande, commentaire } = req.body;
 
@@ -31,7 +31,7 @@ router.post("/", async (req, res) => {
 
 
 // Mettre à jour un rendez-vous (changer statut, modifier date, etc.)
-router.put("/:id", async (req, res) => {
+router.put("/:id",verifyToken , async (req, res) => {
     try {
         const rendezVous = await RendezVous.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate("client voiture");
         res.json(rendezVous);
@@ -41,7 +41,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // Supprimer un rendez-vous
-router.delete("/:id", async (req, res) => {
+router.delete("/:id",verifyToken , async (req, res) => {
     try {
         await RendezVous.findByIdAndDelete(req.params.id);
         res.json({ message: "Rendez-vous supprimé" });
@@ -53,7 +53,7 @@ router.delete("/:id", async (req, res) => {
 
 
 /// Demande de rendez-vous par un client
-router.post("/demandeRendezVoususer/:clientId", async (req, res) => {
+router.post("/demandeRendezVoususer/:clientId", verifyToken , async (req, res) => {
     try {
         const { voiture, date_heure_rdv, problemes, commentaire } = req.body;
 
@@ -93,7 +93,7 @@ router.post("/demandeRendezVoususer/:clientId", async (req, res) => {
   
 
   // Récupérer tous les rendez-vous en attente
-  router.get("/liste/attente", async (req, res) => {
+  router.get("/liste/attente", verifyToken , async (req, res) => {
     try {
         // Rechercher les rendez-vous avec le statut "En attente"
         const rendezVousEnAttente = await RendezVous.find({ statut: "En attente" })
@@ -116,7 +116,7 @@ router.post("/demandeRendezVoususer/:clientId", async (req, res) => {
 
 
 // Récupérer un rendez-vous spécifique
-router.get("/:id", async (req, res) => {
+router.get("/:id", verifyToken , async (req, res) => {
     try {
         const rendezVousDetail = await RendezVous.findById(req.params.id)
             .populate("client", "nom email contact") // Informations du client
@@ -137,7 +137,7 @@ router.get("/:id", async (req, res) => {
 
 
 // Confirmer un rendez-vous (modifier la date, l'heure et changer le statut en "Confirmé")
-router.put("/confirmer/:id", async (req, res) => {
+router.put("/confirmer/:id", verifyToken , async (req, res) => {
     const { date_rendezvous, mecanicien } = req.body;
 
     // Vérification si la date_rendezvous est fournie
@@ -242,7 +242,7 @@ router.get("rendez-vous/:id", verifyToken, async (req, res) => {
 
 
 
-router.get("/client/:clientId", async (req, res) => {
+router.get("/client/:clientId", verifyToken , async (req, res) => {
     try {
         const { clientId } = req.params;
 
@@ -287,12 +287,12 @@ router.get("/client/:clientId", async (req, res) => {
 
 // Route pour valider ou annuler un rendez-vous
 // L'utilisateur doit être authentifié et doit avoir le rôle 'Manager'
-router.put('/action/:id', validerOuAnnulerRendezVous);
+router.put('/action/:id',  verifyToken , validerOuAnnulerRendezVous);
 
 
 
 // Route pour obtenir la liste des rendez-vous validés avec les diagnostics pour un client
-router.get('/client/:clientId/rendez-vous-valides', verifyToken , getRendezVousValidesAvecDiagnostic);
+router.get('/client/:clientId/rendez-vous-valides', verifyToken , verifyToken , getRendezVousValidesAvecDiagnostic);
 
 
 

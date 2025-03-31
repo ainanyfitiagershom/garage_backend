@@ -1,10 +1,10 @@
 const express = require("express");
-const { verifyToken, verifyRole } = require("../../middlewares/authMiddleware");
+const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
 const TypeVehicule = require("../../models/CRUD/TypeVehicule");
 
 const router = express.Router();
 
-router.post("/typevehicules", verifyToken, verifyRole("Manager"), async (req, res) => {
+router.post("/typevehicules", verifyToken , async (req, res) => {
   try {
     const { name } = req.body;
     const typeVehicule = new TypeVehicule({ name });
@@ -24,7 +24,7 @@ router.get("/typevehicules", verifyToken, async (req, res) => {
   }
 });
 
-router.put("/typevehicules/:id", verifyToken, verifyRole("Manager"), async (req, res) => {
+router.put("/typevehicules/:id", verifyToken , async (req, res) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
@@ -36,7 +36,7 @@ router.put("/typevehicules/:id", verifyToken, verifyRole("Manager"), async (req,
   }
 });
 
-router.delete("/typevehicules/:id", verifyToken, verifyRole("Manager"), async (req, res) => {
+router.delete("/typevehicules/:id", verifyToken , async (req, res) => {
   try {
     const { id } = req.params;
     const typeVehicule = await TypeVehicule.findByIdAndDelete(id);

@@ -12,10 +12,10 @@ const { assignerMecanicienAReparation ,
     choisirPiecePriseOuNon} = require("../controllers/reparationController");
 
 const {  validerReparationEtGenererFacture } = require('../controllers/factureControllers');
-    
+const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
 
 // Ajouter une réparation de voiture avec des détails
-router.post("/", async (req, res) => {
+router.post("/", verifyToken , async (req, res) => {
     try {
         const { client, voiture, date_depot, details_reparation } = req.body;
 
@@ -34,7 +34,7 @@ router.post("/", async (req, res) => {
 });
 
 // Ajouter un détail de réparation à une réparation existante
-router.put("/:id/details", async (req, res) => {
+router.put("/:id/details",verifyToken , async (req, res) => {
     try {
         const { id_type_reparation, mecaniciens, difficulte, etat } = req.body;
 
@@ -53,7 +53,7 @@ router.put("/:id/details", async (req, res) => {
 });
 
 // Récupérer toutes les réparations
-router.get("/", async (req, res) => {
+router.get("/", verifyToken , async (req, res) => {
     try {
         const reparations = await ReparationVoiture.find()
             .populate("client voiture details_reparation.id_type_reparation details_reparation.mecaniciens details_reparation.difficulte");
@@ -64,7 +64,7 @@ router.get("/", async (req, res) => {
 });
 
 // Supprimer un détail de réparation d'une réparation
-router.delete("/:id/details/:detailId", async (req, res) => {
+router.delete("/:id/details/:detailId", verifyToken , async (req, res) => {
     try {
         const reparation = await ReparationVoiture.findById(req.params.id);
         if (!reparation) {
@@ -85,16 +85,16 @@ router.delete("/:id/details/:detailId", async (req, res) => {
 
 
 
-router.post("/creation-reparation/:idDiagnostic", creationReparationVoiture );
+router.post("/creation-reparation/:idDiagnostic", verifyToken , creationReparationVoiture );
 
-router.post('/ajouter/:idReparationVoiture', async (req, res) => {
+router.post('/ajouter/:idReparationVoiture', verifyToken , async (req, res) => {
     const { idReparationVoiture } = req.params;
     const { idTypeReparation, idNiveau, pieces } = req.body;
     await insererDetailReparationEtPieces(idReparationVoiture, idTypeReparation, idNiveau, pieces, res);
 });
 
 // Route pour récupérer les détails d'une réparation spécifique
-router.get('/detail/:idReparationVoiture/:idDetailReparation', async (req, res) => {
+router.get('/detail/:idReparationVoiture/:idDetailReparation', verifyToken , async (req, res) => {
     const { idReparationVoiture, idDetailReparation } = req.params; // Récupérer les ID depuis les params de l'URL
     await getDetailReparation(idReparationVoiture, idDetailReparation, res); // Appeler la fonction du contrôleur
 });
@@ -103,7 +103,7 @@ router.get('/detail/:idReparationVoiture/:idDetailReparation', async (req, res) 
 
 
 
-router.post("/assigner-mecanicien", async (req, res) => {
+router.post("/assigner-mecanicien", verifyToken , async (req, res) => {
     try {
         const { mecanicienId, idReparationVoiture, idTypeReparation, dateHeureDebut, dateHeureFin } = req.body;
 
@@ -130,7 +130,7 @@ router.post("/assigner-mecanicien", async (req, res) => {
 
 
 // Route pour valider un détail de réparation par type
-router.put("/valider/:idReparationVoiture/:idTypeReparation", async (req, res) => {
+router.put("/valider/:idReparationVoiture/:idTypeReparation", verifyToken , async (req, res) => {
     try {
         const idReparationVoiture = req.params.idReparationVoiture;
         const idTypeReparation  = req.params.idTypeReparation ;
@@ -153,7 +153,7 @@ router.put("/valider/:idReparationVoiture/:idTypeReparation", async (req, res) =
 
 
 // Route pour valider une réparation
-router.put("/valider/:idReparationVoiture", async (req, res) => {
+router.put("/valider/:idReparationVoiture", verifyToken , async (req, res) => {
     try {
         const { idReparationVoiture } = req.params;
         const result = await ValiderReparationsManager(idReparationVoiture);
@@ -171,7 +171,7 @@ router.put("/valider/:idReparationVoiture", async (req, res) => {
 
 
 // Route pour valider ou annuler un détail de réparation par le client
-router.put("/:idReparationVoiture/:idTypeReparation/action/:action", async (req, res) => {
+router.put("/:idReparationVoiture/:idTypeReparation/action/:action", verifyToken , async (req, res) => {
     try {
         const { idReparationVoiture, idTypeReparation, action } = req.params;
         await validerOuAnnulerDetailReparation(idReparationVoiture, idTypeReparation, action, res);
@@ -182,7 +182,7 @@ router.put("/:idReparationVoiture/:idTypeReparation/action/:action", async (req,
 
 
 // Route pour choisir si une pièce est prise ou non (avec body)
-router.put("/:idReparationVoiture", async (req, res) => {
+router.put("/:idReparationVoiture", verifyToken , async (req, res) => {
     try {
         const { idTypeReparation, idPiece, prise, nombre } = req.body;
         const { idReparationVoiture } = req.params;
@@ -198,7 +198,7 @@ router.put("/:idReparationVoiture", async (req, res) => {
 });
 
 // Route pour valider une réparation et générer une facture
-router.post("/clientvalider/:idReparationVoiture", async (req, res) => {
+router.post("/clientvalider/:idReparationVoiture", verifyToken , async (req, res) => {
     try {
         await validerReparationEtGenererFacture(req.params.idReparationVoiture, res);
     } catch (error) {

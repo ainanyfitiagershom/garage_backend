@@ -11,11 +11,10 @@ const { deposer_voiture ,
 } = require('../controllers/reparationController');
 
 
-
 const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
 
 // Ajouter un diagnostic
-router.post("/", async (req, res) => {
+router.post("/",verifyToken, async (req, res) => {
     try {
         const { client, voiture, mecanicien, observation } = req.body;
 
@@ -35,7 +34,7 @@ router.post("/", async (req, res) => {
 });
 
 // Obtenir tous les diagnostics
-router.get("/", async (req, res) => {
+router.get("/",verifyToken, async (req, res) => {
     try {
         const diagnostics = await Diagnostic.find().populate("client voiture mecanicien");
         res.json(diagnostics);
@@ -45,7 +44,7 @@ router.get("/", async (req, res) => {
 });
 
 // Obtenir un diagnostic par ID
-router.get("/:id", async (req, res) => {
+router.get("/:id",verifyToken, async (req, res) => {
     try {
         const diagnostic = await Diagnostic.findById(req.params.id).populate("client voiture mecanicien");
         if (!diagnostic) {
@@ -58,7 +57,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Mettre à jour un diagnostic (changer statut, modifier observation)
-router.put("/:id", async (req, res) => {
+router.put("/:id", verifyToken ,async (req, res) => {
     try {
         const diagnostic = await Diagnostic.findByIdAndUpdate(req.params.id, req.body, { new: true }).populate("client voiture mecanicien");
         res.json(diagnostic);
@@ -68,7 +67,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // Supprimer un diagnostic
-router.delete("/:id", async (req, res) => {
+router.delete("/:id",verifyToken, async (req, res) => {
     try {
         await Diagnostic.findByIdAndDelete(req.params.id);
         res.json({ message: "Diagnostic supprimé" });
@@ -82,19 +81,19 @@ router.delete("/:id", async (req, res) => {
 
 // Route pour obtenir la liste des diagnostics d'un mécanicien
 // Déclaration de la route Express
-router.get('/mecanicien/:mecanicienId', getDiagnosticsParMecanicien);
+router.get('/mecanicien/:mecanicienId',verifyToken, getDiagnosticsParMecanicien);
 
 
 // Route Express pour récupérer les diagnostics d'un client
-router.get('/client/:clientId', listerDiagnosticsClient);
+router.get('/client/:clientId', verifyToken ,listerDiagnosticsClient);
 
 // Définir le routeur pour le dépôt de voiture
-router.get('/deposer/:idDiagnostic', deposer_voiture);
+router.get('/deposer/:idDiagnostic',verifyToken, deposer_voiture);
 
 // Route pour récupérer les diagnostics terminés
-router.get('/liste/termines', getDiagnostiquesTermines);
+router.get('/liste/termines', verifyToken, getDiagnostiquesTermines);
 
 // Route pour récupérer la réparation par l'ID du diagnostic
-router.get('/reparations/:idDiagnostic', getReparationByDiagnostic);
+router.get('/reparations/:idDiagnostic', verifyToken , getReparationByDiagnostic);
 
 module.exports = router;

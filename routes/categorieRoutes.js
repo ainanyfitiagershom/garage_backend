@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Categorie = require('../models/Paramettres/Categorie');
+const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
 
 // ➤ Ajouter une nouvelle catégorie
-router.post('/', async (req, res) => {
+router.post('/',verifyToken, async (req, res) => {
     try {
         const categorie = new Categorie(req.body);
         await categorie.save();
@@ -14,7 +15,7 @@ router.post('/', async (req, res) => {
 });
 
 // ➤ Récupérer toutes les catégories
-router.get('/', async (req, res) => {
+router.get('/',verifyToken, async (req, res) => {
     try {
         const categories = await Categorie.find();
         res.json(categories);
@@ -24,7 +25,7 @@ router.get('/', async (req, res) => {
 });
 
 // ➤ Récupérer une seule catégorie par ID
-router.get('/:id', async (req, res) => {
+router.get('/:id',verifyToken, async (req, res) => {
     try {
         const categorie = await Categorie.findById(req.params.id);
         if (!categorie) return res.status(404).json({ message: "Catégorie non trouvée" });
@@ -35,7 +36,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // ➤ Mettre à jour une catégorie
-router.put('/:id', async (req, res) => {
+router.put('/:id',verifyToken, async (req, res) => {
     try {
         const categorie = await Categorie.findByIdAndUpdate(req.params.id, req.body, { new: true });
         res.json(categorie);
@@ -45,7 +46,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // ➤ Supprimer une catégorie
-router.delete('/:id', async (req, res) => {
+router.delete('/:id',verifyToken, async (req, res) => {
     try {
         await Categorie.findByIdAndDelete(req.params.id);
         res.json({ message: "Catégorie supprimée avec succès" });

@@ -8,17 +8,17 @@ const Energie = require("../models/Paramettres/Energie");
 const Transmission = require("../models/Paramettres/Transmission");
 
 router.get("/profile", verifyToken, (req, res) => {
-  res.json({ message: "✅ Profil accessible", user: req.user });
+  res.json({ message: " Profil accessible", user: req.user });
 });
 
 router.get("/admin", verifyToken, verifyRole("Manager", "Mécanicien"), (req, res) => {
-  res.json({ message: "✅ Accès autorisé pour les Managers et Mécaniciens" });
+  res.json({ message: " Accès autorisé pour les Managers et Mécaniciens" });
 });
 
 
 
 
-router.post("/:clientId", async (req, res) => {
+router.post("/:clientId", verifyToken , async (req, res) => {
   try {
       const clientId = req.params.clientId; // Extraire l'ID du client depuis l'URL
       const { matricule, annees, model, energie, transmission, kilometrage, photo } = req.body;
@@ -65,7 +65,7 @@ router.post("/:clientId", async (req, res) => {
 
 
 // Obtenir toutes les voitures
-router.get("/", async (req, res) => {
+router.get("/", verifyToken , async (req, res) => {
     try {
         const voitures = await Voiture.find().populate("client model energie transmission");
         res.json(voitures);
@@ -75,7 +75,7 @@ router.get("/", async (req, res) => {
 });
 
 // Obtenir une voiture par ID
-router.get("/:id", async (req, res) => {
+router.get("/:id", verifyToken , async (req, res) => {
     try {
         const voiture = await Voiture.findById(req.params.id).populate("client model energie moteur transmission");
         if (!voiture) {
@@ -88,7 +88,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Modifier une voiture
-router.put("/:id", async (req, res) => {
+router.put("/:id", verifyToken , async (req, res) => {
     try {
         const { matricule, annees, model, energie, transmission, kilometrage, photo } = req.body;
         const voiture = await Voiture.findById(req.params.id);
@@ -114,7 +114,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // Supprimer une voiture
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", verifyToken , async (req, res) => {
     try {
         const voiture = await Voiture.findByIdAndDelete(req.params.id);
         if (!voiture) {
@@ -128,7 +128,7 @@ router.delete("/:id", async (req, res) => {
 
 
 // Récupérer toutes les voitures d'un client
-router.get("/client/:clientId", async (req, res) => {
+router.get("/client/:clientId", verifyToken , async (req, res) => {
   try {
       const clientId = req.params.clientId;
 

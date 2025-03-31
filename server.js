@@ -7,7 +7,6 @@ const authRoutes = require("./routes/authRoutes");
 const inscriptionRoutes = require("./routes/inscriptionRoutes");
 const pwdOublierRoutes = require("./routes/pwdOublierRoutes");
 const voitureRoutes = require("./routes/voitureRoutes");
-const roleRoutes = require("./routes/roleRoutes");
 const clientRoutes = require('./routes/clientRoutes');
 const NiveauRoutes = require('./routes/niveauRoutes');
 const CategorieRoutes = require('./routes/categorieRoutes');
@@ -17,6 +16,14 @@ const ReparationVoitureRoutes = require("./routes/reparationVoitureRoutes");
 const PlanningRoutes = require("./routes/planningRoutes");
 const FactureRoutes = require("./routes/factureRoutes");
 const PaiementRoutes = require("./routes/paiementRoutes");
+const EnergieRoutes = require("./routes/energieRoutes");
+const InscriptionRoutes = require("./routes/inscriptionRoutes");
+const MarquesRoutes = require("./routes/marqueRoutes");
+const ModelRoutes = require("./routes/modelRoutes");
+const PieceRoutes = require("./routes/pieceRoutes");
+const roleRoutes = require("./routes/roleRoutes");
+const transmissionRoutes = require("./routes/transmissionRoutes");
+const typereparationRoutes = require("./routes/typeReparationRoutes");
 
 
 const app = express();
@@ -40,6 +47,15 @@ app.use('/api/reparation', ReparationVoitureRoutes);
 app.use('/api/planning', PlanningRoutes);
 app.use('/api/facture', FactureRoutes);
 app.use('/api/paiement', PaiementRoutes);
+app.use('/api/energie', EnergieRoutes);
+app.use('/api/inscription', InscriptionRoutes);
+app.use('/api/marque', MarquesRoutes);
+app.use('/api/model', ModelRoutes);
+app.use('/api/piece', PieceRoutes);
+app.use('/api/role', roleRoutes);
+app.use('/api/transmission', transmissionRoutes);
+app.use('/api/typereparation', typereparationRoutes);
+
 
 setInterval(deleteOldInscriptions, 60 * 1000);
 

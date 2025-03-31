@@ -305,25 +305,13 @@ const obtenirPlanningsReserveesMecanicien = async (mecanicienId, res) => {
 // Fonction pour commencer une réparation en vérifiant si elle est déjà en cours
 const commencerReparation = async (mecanicienId, idReparationVoiture, idTypeReparation, res) => {
     try {
-        // Vérifier si le planning est réservé pour le mécanicien
-        const planning = await PlanningMecanicien.findOne({
-            mecanicien: mecanicienId,
-            id_reparation_voiture: idReparationVoiture,
-            type_tache: "Réparation",
-            statut: "Réservé"
-        });
-
-        if (!planning) {
-            return res.status(404).json({ message: "Aucun planning réservé trouvé pour cette réparation." });
-        }
-
-        // Trouver le détail de réparation correspondant dans la réparation voiture
+        // Vérifier si la réparation existe
         const reparation = await ReparationVoiture.findById(idReparationVoiture);
-
         if (!reparation) {
             return res.status(404).json({ message: "Réparation non trouvée." });
         }
 
+        // Vérifier si le détail de réparation existe
         const detailReparation = reparation.details_reparation.find(
             (detail) => detail.id_type_reparation.toString() === idTypeReparation
         );
@@ -332,27 +320,38 @@ const commencerReparation = async (mecanicienId, idReparationVoiture, idTypeRepa
             return res.status(404).json({ message: "Détail de réparation non trouvé pour ce type." });
         }
 
-        
-
-        // Si le mécanicien peut commencer la tâche, mettre à jour son planning à "En cours"
-        planning.statut = "En cours";
-        await planning.save();
-
         // Vérifier si le détail de réparation est déjà en cours
-        if (detailReparation.etat === 'En cours') {
+        if (detailReparation.etat === "En cours") {
             return res.status(400).json({ message: "Le détail de réparation est déjà en cours." });
         }
 
-        // Mettre l'état du détail de réparation à "En cours"
+        // Vérifier si le planning est réservé pour le mécanicien
+        const planning = await PlanningMecanicien.findOne({
+            mecanicien: mecanicienId,
+            id_reparation_voiture: idReparationVoiture,
+            id_tache: idTypeReparation,
+            statut: "Réservé"
+        });
+
+        if (!planning) {
+            return res.status(404).json({ message: "Aucun planning réservé trouvé pour cette réparation." });
+        }
+
+        // Mettre à jour le planning et le détail de réparation en "En cours"
+        planning.statut = "En cours";
         detailReparation.etat = "En cours";
-        await reparation.save();
+
+        // Sauvegarder les modifications
+        await Promise.all([planning.save(), reparation.save()]);
 
         return res.status(200).json({ message: "Réparation commencée avec succès." });
+
     } catch (error) {
         console.error(error);
         return res.status(500).json({ message: "Erreur serveur lors du démarrage de la réparation." });
     }
 };
+
 
 
 // Fonction pour terminer une réparation, vérifiant que tous les mécaniciens ont terminé leur tâche

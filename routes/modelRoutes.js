@@ -1,10 +1,10 @@
 const express = require("express");
-const { verifyToken, verifyRole } = require("../../middlewares/authMiddleware");
-const Model = require("../../models/CRUD/Model");
+const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
+const Model = require("../models/Paramettres/Model");
 
 const router = express.Router();
 
-router.post("/models", verifyToken, verifyRole("Manager"), async (req, res) => {
+router.post("/models", verifyToken, async (req, res) => {
   try {
     const { name, marque, typeVehicule } = req.body;
     const model = new Model({ name, marque, typeVehicule });
@@ -24,7 +24,7 @@ router.get("/models", verifyToken, async (req, res) => {
   }
 });
 
-router.put("/models/:id", verifyToken, verifyRole("Manager"), async (req, res) => {
+router.put("/models/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, marque, typeVehicule } = req.body;
@@ -36,7 +36,7 @@ router.put("/models/:id", verifyToken, verifyRole("Manager"), async (req, res) =
   }
 });
 
-router.delete("/models/:id", verifyToken, verifyRole("Manager"), async (req, res) => {
+router.delete("/models/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const model = await Model.findByIdAndDelete(id);

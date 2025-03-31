@@ -1,10 +1,10 @@
 const express = require("express");
-const { verifyToken, verifyRole } = require("../../middlewares/authMiddleware");
-const Marque = require("../../models/CRUD/Marque");
+const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
+const Marque = require("../models/Paramettres/Marque");
 
 const router = express.Router();
 
-router.post("/marques", verifyToken, verifyRole("Manager"), async (req, res) => {
+router.post("/marques", verifyToken, async (req, res) => {
   try {
     const { name } = req.body;
     const marque = new Marque({ name });
@@ -24,7 +24,7 @@ router.get("/marques", async (req, res) => {
   }
 });
 
-router.put("/marques/:id", verifyToken, verifyRole("Manager"), async (req, res) => {
+router.put("/marques/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
@@ -36,7 +36,7 @@ router.put("/marques/:id", verifyToken, verifyRole("Manager"), async (req, res) 
   }
 });
 
-router.delete("/marques/:id", verifyToken, verifyRole("Manager"), async (req, res) => {
+router.delete("/marques/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
     const marque = await Marque.findByIdAndDelete(id);

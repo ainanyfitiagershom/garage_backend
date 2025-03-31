@@ -10,7 +10,7 @@ const PlanningMecanicienSchema = new mongoose.Schema({
     date_heure_debut: { type: Date, required: true }, //  Date et heure de début
     date_heure_fin: { type: Date, required: true }, //  Date et heure de fin
 
-    statut: { type: String, enum: ["Réservé", "Terminé", "Annulé"], default: "Réservé" } //  Statut de la tâche
+    statut: { type: String, enum: ["Réservé", "En cours","Terminé", "Annulé"], default: "Réservé" } //  Statut de la tâche
 }, { timestamps: true });
 
 module.exports = mongoose.model("PlanningMecanicien", PlanningMecanicienSchema);

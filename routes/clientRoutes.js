@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Client = require('../models/Utilisateur/Client');
 const bcrypt = require('bcrypt');
-
+const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
 
 
 router.post('/Client', async (req, res) => {
@@ -27,7 +27,7 @@ router.post('/Client', async (req, res) => {
   });
 
 // Lire un client par ID
-router.get('/:id', async (req, res) => {
+router.get('/:id',verifyToken, async (req, res) => {
     try {
         const client = await Client.findById(req.params.id);
         if (!client) return res.status(404).json({ message: "Client non trouvé" });
@@ -39,7 +39,7 @@ router.get('/:id', async (req, res) => {
 
 
 // Route pour lister tous les clients
-router.get('/', async (req, res) => {
+router.get('/',verifyToken, async (req, res) => {
     try {
         const clients = await Client.find(); // Récupère tous les clients depuis la base de données
         res.status(200).json(clients); // Renvoie les clients au format JSON
@@ -49,7 +49,7 @@ router.get('/', async (req, res) => {
 });
 
 // Mettre à jour un client
-router.put('/:id', async (req, res) => {
+router.put('/:id',verifyToken, async (req, res) => {
     try {
         if (req.body.mdp) {
             req.body.mdp = await bcrypt.hash(req.body.mdp, 10);
@@ -62,7 +62,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Supprimer un client
-router.delete('/:id', async (req, res) => {
+router.delete('/:id',verifyToken, async (req, res) => {
     try {
         await Client.findByIdAndDelete(req.params.id);
         res.json({ message: "Client supprimé" });

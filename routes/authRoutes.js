@@ -11,7 +11,7 @@ const router = express.Router();
  * Route : /api/auth/register
  * Description : Inscription d'un nouvel utilisateur avec un rôle
  */
-router.post("/register",verifyToken , verifyRole("Manager") , async (req, res) => {
+router.post("/register",verifyToken , async (req, res) => {
   try {
     const { username, email, password, tel, roleName } = req.body;
 
