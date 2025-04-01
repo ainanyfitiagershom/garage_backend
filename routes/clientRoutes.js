@@ -26,7 +26,7 @@ router.post('/Client', async (req, res) => {
     }
   });
 
-  router.post('/login/client', async (req, res) => {
+  router.post('/login', async (req, res) => {
     try {
         console.log("📩 Requête reçue avec :", req.body); 
 
