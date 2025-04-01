@@ -98,7 +98,14 @@ router.post("/demandeRendezVoususer/:clientId", verifyToken , async (req, res) =
         // Rechercher les rendez-vous avec le statut "En attente"
         const rendezVousEnAttente = await RendezVous.find({ statut: "En attente" })
             .populate("client", "nom email contact") // Récupérer les infos du client
-            .populate("voiture", "model annee") // Récupérer les infos de la voiture
+            .populate({
+                path: "voiture",
+                populate: [
+                  { path: "model" },
+                  { path: "energie" },
+                  { path: "transmission" }
+                ]
+              }) // Informations sur la voiture
             .populate("categorie", "nom"); // Récupérer les problèmes mentionnés par le client
 
         // Si aucun rendez-vous en attente n'est trouvé
@@ -250,7 +257,14 @@ router.get("/client/:clientId", verifyToken , async (req, res) => {
         const rendezVousValides = await RendezVous.find({ 
             client: clientId
         })
-        .populate("voiture") // Récupérer les infos de la voiture
+        .populate({
+            path: "voiture",
+            populate: [
+              { path: "model" },
+              { path: "energie" },
+              { path: "transmission" }
+            ]
+          }) // Informations sur la voiture
         .populate("categorie") // Récupérer les problèmes signalés
         .sort({ date_demande: -1 }) // Trier du plus récent au plus ancien
         .lean(); // Convertir en objets JS purs pour manipulation

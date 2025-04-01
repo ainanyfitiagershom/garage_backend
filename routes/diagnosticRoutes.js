@@ -88,7 +88,7 @@ router.get('/mecanicien/:mecanicienId',verifyToken, getDiagnosticsParMecanicien)
 router.get('/client/:clientId', verifyToken ,listerDiagnosticsClient);
 
 // Définir le routeur pour le dépôt de voiture
-router.get('/deposer/:idDiagnostic',verifyToken, deposer_voiture);
+router.get('/deposer/:idrdv',verifyToken, deposer_voiture);
 
 // Route pour récupérer les diagnostics terminés
 router.get('/liste/termines', verifyToken, getDiagnostiquesTermines);

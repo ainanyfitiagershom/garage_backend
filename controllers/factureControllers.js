@@ -134,7 +134,7 @@ const listerFactures = async (idClient, res) => {
                 .populate("client", "nom prenom email")
                 .populate({
                     path: "reparation",
-                    populate: { path: "voiture", select: "marque modele immatriculation" }
+                    populate: { path: "voiture", select: "marque model immatriculation" }
                 })
                 .sort({ date_facture: -1 }); // Trier par date (plus récent en premier)
         } else {

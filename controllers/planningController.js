@@ -18,10 +18,25 @@ const getPlanningsReserves = async (req, res) => {
 
             if (planning.type_tache === "Diagnostic") {
                 details = await Diagnostic.findById(planning.id_tache)
-                    .populate("client voiture");
+                    .populate("client")
+                    .populate({
+                        path: "voiture",
+                        populate: [
+                          { path: "model" },
+                          { path: "energie" },
+                          { path: "transmission" }
+                        ]
+                      }) // Informations sur la voiture;
             } else if (planning.type_tache === "Réparation") {
                 details = await ReparationVoiture.findById(planning.id_tache)
-                    .populate("client voiture");
+                    .populate("client").populate({
+                        path: "voiture",
+                        populate: [
+                          { path: "model" },
+                          { path: "energie" },
+                          { path: "transmission" }
+                        ]
+                      }) // Informations sur la voiture;
             }
 
             return {

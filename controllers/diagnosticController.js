@@ -6,11 +6,17 @@ const getDiagnosticsParMecanicien = async (req, res) => {
         const { mecanicienId } = req.params; // Récupérer l'ID depuis l'URL
         // Recherche tous les diagnostics associés au mécanicien et dont l'état est "Validé"
         const diagnostics = await Diagnostic.find({ 
-            mecanicien: mecanicienId, 
-            etat: "Validé" // Filtrer uniquement les diagnostics validés
+            mecanicien: mecanicienId
         })
             .populate('client', 'nom email contact') // Informations du client
-            .populate('voiture', 'marque modele annee') // Informations sur la voiture
+            .populate({
+                path: "voiture",
+                populate: [
+                  { path: "model" },
+                  { path: "energie" },
+                  { path: "transmission" }
+                ]
+              }) // Informations sur la voiture
             .populate('rendez_vous', 'date_rendezvous statut') // Informations du rendez-vous associé
             .sort({ date_diag: -1 }); // Trier du plus récent au plus ancien
 
@@ -62,7 +68,14 @@ const listerDiagnosticsClient = async (req, res) => {
             etat: "Confirmé" // Filtrer uniquement les diagnostics validés
         })
         .populate('client', 'nom email contact')  // Infos du client
-        .populate('voiture', 'marque modele annee') // Infos de la voiture
+        .populate({
+            path: "voiture",
+            populate: [
+              { path: "model" },
+              { path: "energie" },
+              { path: "transmission" }
+            ]
+          }) // Informations sur la voiture
         .populate('mecanicien', 'nom email') // Infos du mécanicien
         .sort({ date_diag: -1 }) // Trier du plus récent au plus ancien
         .select('-__v'); // Exclure le champ __v (optionnel)

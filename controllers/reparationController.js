@@ -12,11 +12,11 @@ const { estMecanicienDisponible, insertPlanningReparation } = require("../contro
 
 
 const deposer_voiture = async (req, res) => {
-    const { idDiagnostic } = req.params;  // On récupère l'ID du diagnostic depuis les params de l'URL
+    const { idrdv } = req.params;  // On récupère l'ID du diagnostic depuis les params de l'URL
 
     try {
         // Récupérer le diagnostic par son ID
-        const diagnostic = await Diagnostic.findById(idDiagnostic);
+        const diagnostic = await Diagnostic.findOne({ rendez_vous: idrdv });
         
         if (!diagnostic) {
             return res.status(404).json({ message: "Diagnostic non trouvé" });

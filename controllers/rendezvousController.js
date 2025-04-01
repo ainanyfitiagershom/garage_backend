@@ -1,5 +1,7 @@
 const RendezVous = require('../models/Reservation/RendezVous');
 const Diagnostic = require("../models/Reservation/Diagnostic");
+const PlanningMecanicien = require("../models/Reservation/PlanningMecanicien");
+
 const { estMecanicienDisponible, insertPlanningDiagnostic } = require("../controllers/planningController");
 
 
@@ -37,7 +39,7 @@ const validerOuAnnulerRendezVous = async (req, res) => {
             diagnostic.etat = "Annulé";      // Change le statut du diagnostic en "Annulé"
 
              // Supprimer l'entrée dans le planning du mécanicien
-             await Planning.findOneAndDelete({ diagnostic: diagnostic._id });
+             await PlanningMecanicien.findOneAndDelete({ diagnostic: diagnostic._id });
         } else {
             return res.status(400).json({ message: "Action invalide" });
         }
