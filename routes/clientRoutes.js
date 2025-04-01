@@ -29,8 +29,9 @@ router.post('/Client', async (req, res) => {
   router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
+        const client = await Client.findOne({ email: email.toLowerCase() });
+        //const client = await Client.findOne({ email: email.trim() });
 
-        const client = await Client.findOne({ email });
 
         if (!client) {
             console.log("❌ Client non trouvé pour l'email :", email);
@@ -47,8 +48,8 @@ router.post('/Client', async (req, res) => {
             process.env.JWT_SECRET,
             { expiresIn: "1h" }
         );
-
-        res.json({ message: "Connexion réussie", token, role: "Client", username: client.nom });
+    
+        return res.json({ message: "Connexion réussie", token, role: "Client", username: client.nom , _id: client._id });
     } catch (error) {
         console.error("💥 Erreur serveur :", error);
         res.status(500).json({ message: error.message });    }

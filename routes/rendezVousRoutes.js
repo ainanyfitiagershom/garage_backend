@@ -77,7 +77,7 @@ router.post("/demandeRendezVoususer/:clientId", verifyToken , async (req, res) =
             client: clientId,   // Lier le rendez-vous au client
             voiture,
             date_heure_rdv,
-            problemes,
+            categorie: problemes,
             commentaire,
             statut: "En attente"
         });
@@ -248,8 +248,7 @@ router.get("/client/:clientId", verifyToken , async (req, res) => {
 
         // Récupérer les rendez-vous confirmés pour un client donné
         const rendezVousValides = await RendezVous.find({ 
-            client: clientId,
-            statut: "Confirmé"  // Filtrer uniquement les rendez-vous confirmés
+            client: clientId
         })
         .populate("voiture") // Récupérer les infos de la voiture
         .populate("categorie") // Récupérer les problèmes signalés
