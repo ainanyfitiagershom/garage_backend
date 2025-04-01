@@ -320,7 +320,9 @@ router.get("/users/mecaniciens", async (req, res) => {
   
       // Trouver les utilisateurs ayant ce rôle
       const mecaniciens = await User.find({ role: mecanicienRole._id }).populate('role');
-        
+  
+      console.log("Mécaniciens récupérés :", mecaniciens); // Ajout de log pour vérifier
+      
       if (!mecaniciens || mecaniciens.length === 0) {
         return res.status(404).json({ message: "Aucun mécanicien trouvé." });
       }
@@ -331,5 +333,6 @@ router.get("/users/mecaniciens", async (req, res) => {
       res.status(500).json({ erreur: err.message });
     }
   });  
+
 
 module.exports = router;
