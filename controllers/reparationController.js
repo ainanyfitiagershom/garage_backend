@@ -138,16 +138,20 @@ async function creationReparationVoiture(req, res) {
 
 
 
-const getReparationByDiagnostic = async (req, res) => {
-    const { idDiagnostic } = req.params; // Récupérer l'ID du diagnostic depuis l'URL
-
+const getReparationByDiagnostic = async (idDiagnostic, res) => {
     try {
+
+        console.log("iddiag " + idDiagnostic)
         // Vérifier si une réparation existe pour ce diagnostic
         const reparation = await ReparationVoiture.findOne({ diagnostic: idDiagnostic })
-            .populate("client voiture") // Récupérer les infos du client et de la voiture
-            .populate("details_reparation.id_type_reparation") // Infos des types de réparation
-            .populate("details_reparation.difficulte") // Infos du niveau de difficulté
-            .populate("pieces_utilisees.piece"); // Infos des pièces utilisées
+        .populate({
+            path: 'details_reparation',
+            populate: [
+                { path: 'id_type_reparation', model: 'TypeReparation' }, // Type de réparation
+                { path: 'difficulte', model: 'Niveau' }, // Niveau de difficulté
+                { path: 'mecaniciens', model: 'User' } // Mécaniciens
+            ]
+        })
 
         if (!reparation) {
             return res.status(404).json({ message: "Aucune réparation trouvée pour ce diagnostic." });
@@ -284,7 +288,8 @@ const insererDetailReparationEtPieces = async (idReparationVoiture, idTypeRepara
 
         // Étape 2 : Ajouter les pièces associées à ce type de réparation
         for (const piece of pieces) {
-            const { idPiece, nombre } = piece;
+            const  idPiece = piece.id;
+            const  nombre  = piece.nombre;
             await ajouterPieceATypeReparation(idReparationVoiture, idTypeReparation, idPiece, nombre);
         }
 
@@ -540,7 +545,40 @@ const getDetailReparation = async (idReparationVoiture, idDetailReparation, res)
     }
 };
 
+const obtenirReparationParId = async (idReparationVoiture, res) => {
+    try {
+        // Chercher la réparation par son ID
 
+        console.lo
+        const reparation = await ReparationVoiture.findById(idReparationVoiture)
+        .populate({
+            path: 'details_reparation',
+            populate: [
+                { path: 'id_type_reparation', model: 'TypeReparation' }, // Type de réparation
+                { path: 'difficulte', model: 'Niveau' }, // Niveau de difficulté
+                { path: 'mecaniciens', model: 'User' } // Mécaniciens
+            ]
+        })
+        .populate({
+            path: 'pieces_utilisees.piece',
+            model: 'Piece' // Récupérer les infos des pièces utilisées
+        });
+
+        // Vérifier si la réparation existe
+        if (!reparation) {
+            throw new Error("Réparation non trouvée.");
+        }
+
+        return res.status(200).json({
+            message: "Détail de réparation trouvè.",
+            reparation: reparation
+        });
+
+    } catch (error) {
+        console.error("❌ Erreur :", error.message);
+        throw error;
+    }
+};
 
 
 
@@ -831,5 +869,6 @@ module.exports = { deposer_voiture,
     validerDetailReparationParType,
     supprimerDetailReparation,
     validerOuAnnulerDetailReparation,
-    choisirPiecePriseOuNon
+    choisirPiecePriseOuNon,
+    obtenirReparationParId
 };

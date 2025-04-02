@@ -9,7 +9,11 @@ const { assignerMecanicienAReparation ,
     validerDetailReparationParType , 
     ValiderReparationsManager ,
     validerOuAnnulerDetailReparation,
-    choisirPiecePriseOuNon} = require("../controllers/reparationController");
+    choisirPiecePriseOuNon,
+    obtenirReparationsEtPieces,
+    obtenirReparationParId,
+    getReparationByDiagnostic
+} = require("../controllers/reparationController");
 
 const {  validerReparationEtGenererFacture } = require('../controllers/factureControllers');
 const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
@@ -87,6 +91,7 @@ router.delete("/:id/details/:detailId", verifyToken , async (req, res) => {
 
 router.post("/creation-reparation/:idDiagnostic", verifyToken , creationReparationVoiture );
 
+
 router.post('/ajouter/:idReparationVoiture', verifyToken , async (req, res) => {
     const { idReparationVoiture } = req.params;
     const { idTypeReparation, idNiveau, pieces } = req.body;
@@ -98,6 +103,21 @@ router.get('/detail/:idReparationVoiture/:idDetailReparation', verifyToken , asy
     const { idReparationVoiture, idDetailReparation } = req.params; // Récupérer les ID depuis les params de l'URL
     await getDetailReparation(idReparationVoiture, idDetailReparation, res); // Appeler la fonction du contrôleur
 });
+
+
+// Route pour récupérer les détails d'une réparation spécifique
+router.get('/voir/:idReparationVoiture' , async (req, res) => {
+    const idReparationVoiture = req.params.idReparationVoiture; // Récupérer les ID depuis les params de l'URL
+    await obtenirReparationParId(idReparationVoiture, res); // Appeler la fonction du contrôleur
+});
+
+
+router.get('/bydiag/:idDiagnostic' , async (req, res) => {
+    const idDiagnostic = req.params.idDiagnostic;
+    await getReparationByDiagnostic(idDiagnostic, res); // Appeler la fonction du contrôleur
+});
+
+
 
 
 
