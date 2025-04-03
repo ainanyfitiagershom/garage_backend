@@ -200,8 +200,11 @@ const getFactureDetail = async (idFacture, res) => {
             .populate("client", "nom prenom email")
             .populate({
                 path: "reparation",
-                populate: { path: "voiture", select: "marque modele immatriculation" }
-            });
+                populate: {
+                    path: "voiture",
+                    populate: { path: "model", select: "name" } // Ici, on récupère les détails du modèle
+                }
+            })
 
         if (!facture) {
             return res.status(404).json({ message: "Facture non trouvée." });

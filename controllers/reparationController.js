@@ -732,6 +732,7 @@ const choisirPiecePriseOuNon = async (idReparationVoiture, idTypeReparation, idP
             return res.status(400).json({ message: "La réparation est déjà validée ou annulée. Vous ne pouvez pas modifier les pièces." });
         }
 
+        
         // Trouver le détail de la réparation associé au type de réparation
         const detailReparation = reparation.details_reparation.find(
             (detail) => detail.id_type_reparation.toString() === idTypeReparation

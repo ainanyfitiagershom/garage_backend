@@ -3,7 +3,7 @@ const Facture = require("../models/Facture");
 
 const router = express.Router();
 const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
-const {  voirFacture,listerFactures } = require('../controllers/factureControllers');
+const {  voirFacture,listerFactures ,getFactureDetail } = require('../controllers/factureControllers');
 
 // Créer une facture avec détails
 router.post("/",verifyToken ,async (req, res) => {
@@ -98,5 +98,12 @@ router.get('/client/:idClient', verifyToken ,(req, res) => {
     const idClient = req.params.idClient;
     listerFactures(idClient, res);
 });
+
+// Route pour récupérer les factures d'un client spécifique
+router.get('/detail/:idFacture', verifyToken ,(req, res) => {
+    const idFacture = req.params.idFacture;
+    getFactureDetail(idFacture, res);
+});
+
 
 module.exports = router;
