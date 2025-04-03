@@ -24,6 +24,7 @@ const PieceRoutes = require("./routes/pieceRoutes");
 const roleRoutes = require("./routes/roleRoutes");
 const transmissionRoutes = require("./routes/transmissionRoutes");
 const typereparationRoutes = require("./routes/typeReparationRoutes");
+const typeVehiculeRoutes = require("./routes/typeVehiculeRoutes");
 
 
 const app = express();
@@ -55,6 +56,7 @@ app.use('/api/piece', PieceRoutes);
 app.use('/api/role', roleRoutes);
 app.use('/api/transmission', transmissionRoutes);
 app.use('/api/typereparation', typereparationRoutes);
+app.use('/api/type-vehicule', typeVehiculeRoutes);
 
 
 setInterval(deleteOldInscriptions, 60 * 1000);

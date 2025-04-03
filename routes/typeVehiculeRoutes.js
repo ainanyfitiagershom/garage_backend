@@ -1,6 +1,6 @@
 const express = require("express");
 const { verifyToken, verifyRole } = require("../middlewares/authMiddleware");
-const TypeVehicule = require("../../models/CRUD/TypeVehicule");
+const TypeVehicule = require("../models/Paramettres/TypeVehicule");
 
 const router = express.Router();
 
