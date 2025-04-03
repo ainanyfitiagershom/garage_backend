@@ -4,6 +4,7 @@ const Piece = require("../models/Reparation/Piece");
 const TypeReparation = require("../models/Reparation/TypeReparation");
 const Niveau = require("../models/Paramettres/Niveau");
 const PlanningMecanicien = require("../models/Reservation/PlanningMecanicien");
+const Client = require("../models/Utilisateur/Client");
 
 
 const { estMecanicienDisponible, insertPlanningReparation } = require("../controllers/planningController");
@@ -465,7 +466,7 @@ const assignerMecanicienAReparation = async (mecanicienId, idReparationVoiture, 
         // Insérer dans le planning du mécanicien
         await insertPlanningReparation(mecanicienId, idReparationVoiture, idTypeReparation, dateHeureDebut, dateHeureFin);
 
-        return { message: "Mécanicien assigné avec succès." };
+        return { success: true, message: "Mécanicien assigné avec succès." };
     } catch (error) {
         throw new Error("Erreur lors de l'assignation : " + error.message);
     }
@@ -566,7 +567,7 @@ const obtenirReparationParId = async (idReparationVoiture, res) => {
 
         // Vérifier si la réparation existe
         if (!reparation) {
-            throw new Error("Réparation non trouvée.");
+            return { success: false, message: "Réparation non trouvée." };
         }
 
         return res.status(200).json({
@@ -576,7 +577,6 @@ const obtenirReparationParId = async (idReparationVoiture, res) => {
 
     } catch (error) {
         console.error("❌ Erreur :", error.message);
-        throw error;
     }
 };
 
@@ -673,6 +673,7 @@ const validerDetailReparationParType = async (idReparationVoiture, idTypeReparat
             message: "Détail de réparation validé avec succès.",
             data: {
                 idReparationVoiture: reparation._id,
+                idDiagnostic: reparation.diagnostic,
                 idTypeReparation: idTypeReparation,
                 etatDetailReparation: detailReparation.etat,
                 mecaniciens: detailReparation.mecaniciens,
@@ -783,10 +784,17 @@ const choisirPiecePriseOuNon = async (idReparationVoiture, idTypeReparation, idP
     }
 };
 
-const validerOuAnnulerDetailReparation = async (idReparationVoiture, idTypeReparation, action, res) => {
+const validerOuAnnulerDetailReparation = async (idClient,idReparationVoiture, idTypeReparation, action, res) => {
     try {
         // Rechercher la réparation voiture par son ID
         const reparation = await ReparationVoiture.findById(idReparationVoiture);
+
+        // Rechercher la réparation voiture par son ID
+        const client = await Client.findById(idClient);
+
+        if (!client) {
+            return res.status(404).json({ message: "Client non trouvée." });
+        }
 
         if (!reparation) {
             return res.status(404).json({ message: "Réparation non trouvée." });

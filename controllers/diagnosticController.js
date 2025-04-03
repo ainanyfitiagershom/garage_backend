@@ -72,8 +72,7 @@ const listerDiagnosticsClient = async (req, res) => {
     try {
         // Rechercher tous les diagnostics validés du client
         const diagnostics = await Diagnostic.find({ 
-            client: clientId, 
-            etat: "Confirmé" // Filtrer uniquement les diagnostics validés
+            client: clientId // Filtrer uniquement les diagnostics validés
         })
         .populate('client', 'nom email contact')  // Infos du client
         .populate({

@@ -173,7 +173,7 @@ router.put("/valider/:idReparationVoiture/:idTypeReparation", verifyToken , asyn
 
 
 // Route pour valider une réparation
-router.put("/valider/:idReparationVoiture", verifyToken , async (req, res) => {
+router.get("/valider/:idReparationVoiture", verifyToken , async (req, res) => {
     try {
         const { idReparationVoiture } = req.params;
         const result = await ValiderReparationsManager(idReparationVoiture);
@@ -191,10 +191,10 @@ router.put("/valider/:idReparationVoiture", verifyToken , async (req, res) => {
 
 
 // Route pour valider ou annuler un détail de réparation par le client
-router.put("/:idReparationVoiture/:idTypeReparation/action/:action", verifyToken , async (req, res) => {
+router.put("/:idClient/:idReparationVoiture/:idTypeReparation/action/:action", verifyToken , async (req, res) => {
     try {
-        const { idReparationVoiture, idTypeReparation, action } = req.params;
-        await validerOuAnnulerDetailReparation(idReparationVoiture, idTypeReparation, action, res);
+        const {idClient,idReparationVoiture, idTypeReparation, action } = req.params;
+        await validerOuAnnulerDetailReparation(idClient,idReparationVoiture, idTypeReparation, action, res);
     } catch (error) {
         res.status(500).json({ message: "Erreur du serveur", error: error.message });
     }
