@@ -3,6 +3,8 @@ const Diagnostic = require("../models/Reservation/Diagnostic");
 const ReparationVoiture = require("../models/Reparation/ReparationVoiture");
 const AbsenceMecanicien = require("../models/Reservation/AbsenceMecanicien");
 const User = require("../models/Utilisateur/User");
+const TypeReparation = require("../models/Reparation/TypeReparation");
+
 
 
 const getPlanningsReserves = async (req, res) => {
@@ -28,7 +30,7 @@ const getPlanningsReserves = async (req, res) => {
                         ]
                       }) // Informations sur la voiture;
             } else if (planning.type_tache === "Réparation") {
-                details = await ReparationVoiture.findById(planning.id_tache)
+                details = await ReparationVoiture.findById(planning.id_reparation_voiture)
                     .populate("client").populate({
                         path: "voiture",
                         populate: [
@@ -297,31 +299,56 @@ const gererAbsence = async (req, res) => {
 // Fonction pour récupérer les plannings réservés pour un mécanicien
 const obtenirPlanningsReserveesMecanicien = async (mecanicienId, res) => {
     try {
-        // Récupérer les plannings où le statut est "Réservé"
-        const planningsReservees = await PlanningMecanicien.find({
-            mecanicien: mecanicienId,
-            type_tache: "Réparation"
-        }).populate({
-            path: 'id_reparation_voiture',
-            select: 'detailReparation', // Sélectionner le champ `detailReparation` de `ReparationVoiture`
-            populate: {
-                path: 'details_reparation.id_type_reparation', // Populer la référence à `it_type_reparation`
-                select: 'nom' // Sélectionner `nom` dans `it_type_reparation`
+        // Récupérer les plannings avec statut "Réservé" ou "En cours"
+        const plannings = await PlanningMecanicien.find({ statut: { $in: ["Réservé", "En cours"] } , type_tache :"Réparation"})
+            .populate("mecanicien", "nom prenom") // Populate le mécanicien
+            .sort({ date_heure_debut: 1 }); // Trier par date de début
+
+        // Récupérer tous les diagnostics et réparations en parallèle
+        const tasks = plannings.map(async (planning) => {
+            let details = null;
+            if (planning.type_tache === "Réparation") {
+                // Récupérer les informations de `TypeReparation` en fonction de `id_tache`
+                if (planning.id_tache) {
+                    const reparation = await ReparationVoiture.findById(planning.id_reparation_voiture);
+                    details = reparation.details_reparation.find(
+                    detail => detail.id_type_reparation.toString() === planning.id_tache.toString()
+                    );
+                }
             }
-        })
+            const type_reparation = await TypeReparation.findById(details.id_type_reparation);
+            const reparation = await ReparationVoiture.findById(planning.id_reparation_voiture)
+                    .populate("client").populate({
+                        path: "voiture",
+                        populate: [
+                          { path: "model" },
+                          { path: "energie" },
+                          { path: "transmission" }
+                        ]
+                      })
+            return {
+                _id: planning._id,
+                id_reparation_voiture: planning.id_reparation_voiture,
+                mecanicien: planning.mecanicien,
+                type_tache: planning.type_tache,
+                nom : type_reparation.nom,
+                date_heure_debut: planning.date_heure_debut,
+                date_heure_fin: planning.date_heure_fin,
+                statut: planning.statut,
+                voiture : reparation.voiture,
+                details: details, // Ajoute les détails du diagnostic ou de la réparation
+            };
+            
+        });
 
-        
-        if (!planningsReservees || planningsReservees.length === 0) {
-            return res.status(404).json({ message: "Aucun planning réservé pour ce mécanicien." });
-        }
+        // Exécuter toutes les requêtes en parallèle et récupérer les résultats
+        const result = await Promise.all(tasks);
 
-        return res.status(200).json(planningsReservees);
+        res.status(200).json(result);
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Erreur serveur lors de la récupération des plannings réservés." });
+        res.status(500).json({ message: "Erreur serveur", error: error.message });
     }
-};
-
+}
 
 
 // Fonction pour commencer une réparation en vérifiant si elle est déjà en cours
@@ -342,29 +369,32 @@ const commencerReparation = async (mecanicienId, idReparationVoiture, idTypeRepa
             return res.status(404).json({ message: "Détail de réparation non trouvé pour ce type." });
         }
 
+              // Vérifier si le planning est réservé pour le mécanicien
+              const planning = await PlanningMecanicien.findOne({
+                mecanicien: mecanicienId,
+                id_reparation_voiture: idReparationVoiture,
+                id_tache: idTypeReparation,
+                statut: "Réservé"
+            });
+    
+            if (!planning) {
+                return res.status(404).json({ message: "Aucun planning réservé trouvé pour cette réparation." });
+            }
+    
+            // Mettre à jour le planning et le détail de réparation en "En cours"
+            planning.statut = "En cours";
+            await planning.save()
+
         // Vérifier si le détail de réparation est déjà en cours
         if (detailReparation.etat === "En cours") {
             return res.status(400).json({ message: "Le détail de réparation est déjà en cours." });
         }
 
-        // Vérifier si le planning est réservé pour le mécanicien
-        const planning = await PlanningMecanicien.findOne({
-            mecanicien: mecanicienId,
-            id_reparation_voiture: idReparationVoiture,
-            id_tache: idTypeReparation,
-            statut: "Réservé"
-        });
-
-        if (!planning) {
-            return res.status(404).json({ message: "Aucun planning réservé trouvé pour cette réparation." });
-        }
-
-        // Mettre à jour le planning et le détail de réparation en "En cours"
-        planning.statut = "En cours";
+  
         detailReparation.etat = "En cours";
 
         // Sauvegarder les modifications
-        await Promise.all([planning.save(), reparation.save()]);
+        await reparation.save();
 
         return res.status(200).json({ message: "Réparation commencée avec succès." });
 
