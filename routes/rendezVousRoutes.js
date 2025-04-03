@@ -160,18 +160,24 @@ router.put("/confirmer/:id", verifyToken , async (req, res) => {
     }
 
     try {
+
+        const testRendezVous = await RendezVous.findById(req.params.id);
+        if (!testRendezVous) {
+            console.error(" Aucun rendez-vous trouvé avec cet ID !");
+            return res.status(404).json({ message: "Rendez-vous introuvable" });
+        }
+
         // Trouver et mettre à jour le rendez-vous
         const rendezVous = await RendezVous.findByIdAndUpdate(
             req.params.id,
             {
-                date_rendezvous,  // Nouvelle date et heure
+                date_heure_rdv : date_rendezvous,  // Nouvelle date et heure
                 statut: "Confirmé"  // Statut "Confirmé" si non spécifié
             },
             { new: true }  // Retourner le document mis à jour
-        )
-        .populate("client", "nom email contact") // Informations du client
-        .populate("voiture", "marque modele annee") // Informations de la voiture
-        .populate("categorie", "nom"); // Informations des problèmes signalés
+        );
+
+        console.log("✅ Résultat après update :", rendezVous);
 
         if (!rendezVous) {
             return res.status(404).json({ message: "Rendez-vous non trouvé" });
@@ -202,7 +208,7 @@ router.put("/confirmer/:id", verifyToken , async (req, res) => {
         });
 
         // Sauvegarde du diagnostic
-        await diagnostic.save();
+       await diagnostic.save();
 
         console.log("iddddddd!" + diagnostic._id);
          // Insérer le diagnostic dans le planning du mécanicien

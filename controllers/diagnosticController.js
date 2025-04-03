@@ -38,8 +38,16 @@ const getDiagnosticsParMecanicien = async (req, res) => {
 const getDiagnostiquesTermines = async (req, res) => {
     try {
         // Récupérer les diagnostics terminés
-        const diagnosticsTermines = await Diagnostic.find({ etat: "Terminé" })
-            .populate('client voiture') // Récupérer les informations du client et de la voiture
+        const diagnosticsTermines = await Diagnostic.find()
+            .populate('client') // Récupérer les informations du client
+            .populate({
+                path: "voiture",
+                populate: [
+                  { path: "model" },
+                  { path: "energie" },
+                  { path: "transmission" }
+                ]
+              }) // Informations sur la voiture
             .sort({ date_fin: -1 }); // Optionnel: trier par date de fin (les plus récents en premier)
 
         if (diagnosticsTermines.length === 0) {
@@ -64,8 +72,7 @@ const listerDiagnosticsClient = async (req, res) => {
     try {
         // Rechercher tous les diagnostics validés du client
         const diagnostics = await Diagnostic.find({ 
-            client: clientId, 
-            etat: "Confirmé" // Filtrer uniquement les diagnostics validés
+            client: clientId // Filtrer uniquement les diagnostics validés
         })
         .populate('client', 'nom email contact')  // Infos du client
         .populate({
