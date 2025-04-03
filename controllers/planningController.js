@@ -300,10 +300,17 @@ const obtenirPlanningsReserveesMecanicien = async (mecanicienId, res) => {
         // Récupérer les plannings où le statut est "Réservé"
         const planningsReservees = await PlanningMecanicien.find({
             mecanicien: mecanicienId,
-            statut: "Réservé",
             type_tache: "Réparation"
-        }).populate('id_reparation_voiture');
+        }).populate({
+            path: 'id_reparation_voiture',
+            select: 'detailReparation', // Sélectionner le champ `detailReparation` de `ReparationVoiture`
+            populate: {
+                path: 'details_reparation.id_type_reparation', // Populer la référence à `it_type_reparation`
+                select: 'nom' // Sélectionner `nom` dans `it_type_reparation`
+            }
+        })
 
+        
         if (!planningsReservees || planningsReservees.length === 0) {
             return res.status(404).json({ message: "Aucun planning réservé pour ce mécanicien." });
         }

@@ -120,9 +120,6 @@ router.get('/bydiag/:idDiagnostic' , async (req, res) => {
 
 
 
-
-
-
 router.post("/assigner-mecanicien", verifyToken , async (req, res) => {
     try {
         const { mecanicienId, idReparationVoiture, idTypeReparation, dateHeureDebut, dateHeureFin } = req.body;
