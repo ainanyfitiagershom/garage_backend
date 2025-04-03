@@ -24,6 +24,18 @@ router.get("/models", verifyToken, async (req, res) => {
   }
 });
 
+router.get("/models/:id", verifyToken,async (req, res) => {
+    try {
+        const models = await Model.findById(req.params.id);
+        if (!models) {
+            return res.status(404).json({ message: "Model non trouvé" });
+        }
+        res.json(models);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
 router.put("/models/:id", verifyToken, async (req, res) => {
   try {
     const { id } = req.params;
