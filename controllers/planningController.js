@@ -300,7 +300,7 @@ const gererAbsence = async (req, res) => {
 const obtenirPlanningsReserveesMecanicien = async (mecanicienId, res) => {
     try {
         // Récupérer les plannings avec statut "Réservé" ou "En cours"
-        const plannings = await PlanningMecanicien.find({ statut: { $in: ["Réservé", "En cours"] } , type_tache :"Réparation"})
+        const plannings = await PlanningMecanicien.find({ statut: { $in: ["Réservé", "En cours"] } , type_tache :"Réparation" , mecanicien :mecanicienId})
             .populate("mecanicien", "nom prenom") // Populate le mécanicien
             .sort({ date_heure_debut: 1 }); // Trier par date de début
 
