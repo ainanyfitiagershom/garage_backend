@@ -9,11 +9,13 @@ router.post('/Client', async (req, res) => {
     try {
       const { nom, email,mdp, contact, adresse } = req.body;
   
+      const hashedPassword = await bcrypt.hash(password, 10);
+  
       // Créer un nouveau client
       const newClient = new Client({
         nom,
         email,
-        mdp,
+        mdp: hashedPassword,
         contact,
         adresse
       });
