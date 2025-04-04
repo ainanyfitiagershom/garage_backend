@@ -170,4 +170,71 @@ router.put("/payer/:idFacture", verifyToken , async (req, res) => {
 });
 
 
+router.get("/liste/:idClient", verifyToken , async (req, res) => {
+    try {
+        const idClient = req.params.idClient;
+        let paiements;
+        if (idClient) {
+            // Récupérer les paiements d'un client spécifique
+            paiements = await Paiement.find()
+                .populate({
+                    path: "facture",
+                    match: { client: idClient }, // Filtrer sur le client
+                    populate: {
+                        path: "client",
+                        select: "nom prenom email contact"
+                    }
+                })
+                .populate({
+                    path: "facture",
+                    populate: {
+                        path: "reparation",
+                        populate: {
+                            path: "voiture",
+                            select: "marque model immatriculation"
+                        }
+                    }
+                })
+                .sort({ createdAt: -1 });
+
+            // Filtrer les paiements qui ont une facture correspondant au client
+            paiements = paiements.filter(p => p.facture !== null);
+        } else {
+            // Récupérer tous les paiements
+            paiements = await Paiement.find()
+                .populate({
+                    path: "facture",
+                    populate: {
+                        path: "client",
+                        select: "nom prenom email contact"
+                    }
+                })
+                .populate({
+                    path: "facture",
+                    populate: {
+                        path: "reparation",
+                        populate: {
+                            path: "voiture",
+                            select: "marque model immatriculation"
+                        }
+                    }
+                })
+                .sort({ createdAt: -1 });
+        }
+
+        if (paiements.length === 0) {
+            return res.status(404).json({ message: "Aucun paiement trouvé." });
+        }
+
+        return res.status(200).json({ paiements });
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Erreur lors de la récupération des paiements.", error });
+    }
+});
+
+
+
+
 module.exports = router;
